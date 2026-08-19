@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+*.env
+
+# Node
+node_modules/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Python cache
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local database and logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Generated test output
+scamshield-ai/backend/n
+
+# Large ML datasets
+scamshield-ai/backend/app/ml/data/*.csv
+
+# Virtual environment
+scamshield-ai/backend/venv/
