@@ -13,6 +13,14 @@ type ScoreFactor = {
   detail: string;
 };
 
+type RiskBreakdown = { [component: string]: number };
+
+type FeatureExplanation = {
+  feature: string;
+  contribution: number;
+  direction: string;
+};
+
 type AnalyzeResponse = {
   input_value: string;
   input_type: string;
@@ -20,15 +28,12 @@ type AnalyzeResponse = {
   verdict: "safe" | "suspicious" | "dangerous";
   factors: ScoreFactor[];
   ml_scam_probability: number;
+  recommendations: string[];
+  risk_breakdown: RiskBreakdown;
+  explanation: FeatureExplanation[];
 };
 
 type InputMode = "url" | "job" | "email";
-
-const verdictColor = {
-  safe: "text-green-600 bg-green-50",
-  suspicious: "text-yellow-600 bg-yellow-50",
-  dangerous: "text-red-600 bg-red-50",
-};
 
 const modeConfig = {
   url: { label: "URL / Website", placeholder: "Enter a URL, e.g. example.com", endpoint: "/api/analyze" },
@@ -74,10 +79,10 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center px-4 pb-16 pt-12 text-[#E8ECF1]">
       <div className="relative w-full max-w-6xl">
-        <div className="absolute inset-x-0 top-0 -z-10 mx-auto h-72 w-72 rounded-full bg-[#22D3B8]/20 blur-3xl" />
+        <div className="ambient-glow absolute inset-x-0 top-0 -z-10 mx-auto h-72 w-72 rounded-full bg-[#22D3B8]/20 blur-3xl" />
 
-        <section className="rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.7)] backdrop-blur-xl sm:p-8">
-          <div className="mb-8 flex flex-col items-center text-center">
+        <section className="reveal-up interactive-panel rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.7)] backdrop-blur-xl sm:p-8">
+          <div className="reveal-up reveal-delay-1 mb-8 flex flex-col items-center text-center">
             <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#22D3B8]/30 bg-[#22D3B8]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8FFAE0]">
               ScamShield AI
             </span>
@@ -89,7 +94,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mx-auto mb-6 max-w-xl rounded-2xl border border-white/10 bg-[#0B1324]/80 p-2 shadow-inner shadow-black/20">
+          <div className="reveal-up reveal-delay-2 mx-auto mb-6 max-w-xl rounded-2xl border border-white/10 bg-[#0B1324]/80 p-2 shadow-inner shadow-black/20">
             <div className="flex flex-wrap gap-2">
               {(Object.keys(modeConfig) as InputMode[]).map((m) => (
                 <button
@@ -111,7 +116,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mx-auto w-full max-w-2xl">
+          <div className="reveal-up reveal-delay-3 mx-auto w-full max-w-2xl">
             {mode === "url" ? (
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
@@ -123,7 +128,7 @@ export default function Home() {
                 <button
                   onClick={handleAnalyze}
                   disabled={loading}
-                  className="rounded-2xl bg-gradient-to-r from-[#22D3B8] to-[#1DB7A7] px-6 py-3.5 text-sm font-bold text-[#07131C] shadow-lg shadow-[#22D3B8]/20 transition hover:scale-[1.01] hover:shadow-[#22D3B8]/35 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="scan-button rounded-2xl bg-gradient-to-r from-[#22D3B8] to-[#1DB7A7] px-6 py-3.5 text-sm font-bold text-[#07131C] shadow-lg shadow-[#22D3B8]/20 transition hover:scale-[1.03] hover:shadow-[#22D3B8]/35 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? "Scanning..." : "Analyze"}
                 </button>
@@ -141,7 +146,7 @@ export default function Home() {
                   <button
                     onClick={handleAnalyze}
                     disabled={loading}
-                    className="rounded-2xl bg-gradient-to-r from-[#22D3B8] to-[#1DB7A7] px-6 py-3 text-sm font-bold text-[#07131C] shadow-lg shadow-[#22D3B8]/20 transition hover:scale-[1.01] hover:shadow-[#22D3B8]/35 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="scan-button rounded-2xl bg-gradient-to-r from-[#22D3B8] to-[#1DB7A7] px-6 py-3 text-sm font-bold text-[#07131C] shadow-lg shadow-[#22D3B8]/20 transition hover:scale-[1.03] hover:shadow-[#22D3B8]/35 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {loading ? "Scanning..." : "Analyze"}
                   </button>
@@ -152,7 +157,7 @@ export default function Home() {
         </section>
 
         {result && (
-          <section className="mx-auto mt-8 w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#0D1728]/90 p-5 shadow-[0_20px_60px_rgba(2,6,23,0.7)] backdrop-blur-xl sm:p-6">
+          <section className="reveal-up interactive-panel mx-auto mt-8 w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#0D1728]/90 p-5 shadow-[0_20px_60px_rgba(2,6,23,0.7)] backdrop-blur-xl sm:p-6">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-[#8B95AB]">Checked input</p>
@@ -218,6 +223,59 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {result.risk_breakdown && Object.keys(result.risk_breakdown).length > 0 && (
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-[#8B95AB]">Risk Component Breakdown</p>
+                <div className="space-y-3">
+                  {Object.entries(result.risk_breakdown).map(([component, score]) => (
+                    <div key={component} className="flex items-center gap-3">
+                      <span className="w-32 text-xs capitalize text-[#8B95AB]">{component.replace("_", " ")}</span>
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${score}%`,
+                            backgroundColor: score >= 70 ? "#22D3B8" : score >= 40 ? "#F5A623" : "#EF4444",
+                          }}
+                        />
+                      </div>
+                      <span className="w-10 text-right font-mono text-xs text-[#E8ECF1]">{score}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {result.explanation && result.explanation.length > 0 && (
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-[#8B95AB]">What Influenced the ML Score</p>
+                <div className="space-y-2">
+                  {result.explanation.map((item) => (
+                    <div key={item.feature} className="flex items-center justify-between text-sm">
+                      <span className="text-[#DCEAFB]">{item.feature}</span>
+                      <span className={`font-mono text-xs ${item.direction === "increases_risk" ? "text-[#FCA5A5]" : "text-[#8FFAE0]"}`}>
+                        {item.contribution > 0 ? "+" : ""}{item.contribution} ({item.direction === "increases_risk" ? "↑ risk" : "↓ risk"})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {result.recommendations && result.recommendations.length > 0 && (
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-[#8B95AB]">Recommended Actions</p>
+                <ul className="space-y-2">
+                  {result.recommendations.map((rec, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-[#DCEAFB]">
+                      <span className="shrink-0 text-[#8FFAE0]">•</span>
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {mode === "url" && (
               <div className="mt-6 border-t border-white/10 pt-4">
