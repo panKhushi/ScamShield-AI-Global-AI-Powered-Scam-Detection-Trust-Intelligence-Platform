@@ -1,3 +1,20 @@
+HEAD
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+
+# Streamlit
+.streamlit/secrets.toml
+
 # Python
 __pycache__/
 *.py[cod]
@@ -39,3 +56,4 @@ scamshield-ai/backend/app/ml/data/*.csv
 
 # Virtual environment
 scamshield-ai/backend/venv/
+ 12f194f1819015b55b5bc129de2b183d8479a682
