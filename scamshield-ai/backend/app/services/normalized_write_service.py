@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.db_models_v2 import Scan, ScanResult, Evidence, ModelPrediction, Domain, Url
+from app.db_models_v2 import User
 from app.models import ScoreFactor
 
 
@@ -31,6 +32,10 @@ def write_normalized_scan(
     for URL scans. Runs alongside the existing flat ScanRecord write —
     does not replace it.
     """
+    if user_id is not None and db.get(User, user_id) is None:
+        db.add(User(id=user_id))
+        db.flush()
+
     scan = Scan(user_id=user_id, input_type=input_type, raw_input=raw_input[:1000])
     db.add(scan)
     db.flush()

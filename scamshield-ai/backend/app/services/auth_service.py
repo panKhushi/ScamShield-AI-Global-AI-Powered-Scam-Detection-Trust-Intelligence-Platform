@@ -1,3 +1,4 @@
+import logging
 import os
 import requests
 from fastapi import Depends, HTTPException, status
@@ -10,16 +11,14 @@ SUPABASE_PROJECT_URL = os.getenv("SUPABASE_URL")
 JWKS_URL = f"{SUPABASE_PROJECT_URL}/auth/v1/.well-known/jwks.json"
 
 _jwks_cache = None
+logger = logging.getLogger(__name__)
 
 def get_jwks():
     global _jwks_cache
     if _jwks_cache is None:
-        print(f"DEBUG: Fetching JWKS from {JWKS_URL}")
         response = requests.get(JWKS_URL, timeout=5)
-        print(f"DEBUG: JWKS response status: {response.status_code}")
         response.raise_for_status()
         _jwks_cache = response.json()
-        print(f"DEBUG: JWKS keys found: {[k['kid'] for k in _jwks_cache['keys']]}")
     return _jwks_cache
 
 
@@ -28,18 +27,15 @@ def get_optional_current_user(credentials: HTTPAuthorizationCredentials | None =
         return None
 
     token = credentials.credentials
-    print(f"DEBUG: Token received (first 30 chars): {token[:30]}...")
-
     try:
         unverified_header = jwt.get_unverified_header(token)
         kid = unverified_header.get("kid")
-        print(f"DEBUG: Token kid: {kid}")
 
         jwks = get_jwks()
         key = next((k for k in jwks["keys"] if k["kid"] == kid), None)
 
         if key is None:
-            print("DEBUG: No matching key found in JWKS!")
+            logger.warning("No matching Supabase JWKS key found for token kid")
             return None
 
         payload = jwt.decode(
@@ -50,8 +46,14 @@ def get_optional_current_user(credentials: HTTPAuthorizationCredentials | None =
         )
         return payload
 
+    except requests.RequestException as e:
+        logger.warning("Unable to fetch Supabase JWKS: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service is temporarily unavailable",
+        ) from e
     except JWTError as e:
-        print(f"DEBUG: JWTError: {str(e)}")
+        logger.info("Supabase token validation failed: %s", e)
         return None
 
 

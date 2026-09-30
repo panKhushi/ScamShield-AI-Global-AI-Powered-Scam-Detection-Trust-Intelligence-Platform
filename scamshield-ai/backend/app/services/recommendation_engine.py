@@ -39,6 +39,24 @@ EVIDENCE_RECOMMENDATIONS = {
     "Unexpected Attachment/Prize": [
         "Do not open unexpected attachments or claim unsolicited prizes — these often carry malware or lead to phishing pages.",
     ],
+    "Urgency / Threats": [
+        "Ignore urgent SMS threats and verify account issues through the organization's official app or website.",
+    ],
+    "Suspicious / Shortened Link": [
+        "Do not open links from unexpected SMS messages; visit the official service directly instead.",
+    ],
+    "Prize / Refund Claim": [
+        "Do not pay fees or provide details to claim an unexpected prize or refund.",
+    ],
+    "OTP / PIN / Bank Details Request": [
+        "Never share an OTP, PIN, or bank details in response to an SMS.",
+    ],
+    "Impersonation": [
+        "Contact the bank, delivery service, or government department using a trusted official number.",
+    ],
+    "Unknown Sender Pattern": [
+        "Treat unexpected messages from unknown senders as suspicious and avoid replying.",
+    ],
     "Domain Age": [
         "Newly registered domains are statistically more likely to be used for scams — proceed with extra caution.",
     ],

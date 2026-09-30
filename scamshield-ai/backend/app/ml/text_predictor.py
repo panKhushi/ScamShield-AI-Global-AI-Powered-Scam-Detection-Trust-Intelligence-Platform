@@ -7,6 +7,8 @@ _job_model = None
 _job_vectorizer = None
 _email_model = None
 _email_vectorizer = None
+_sms_model = None
+_sms_vectorizer = None
 
 
 def _load_job_model():
@@ -25,6 +27,14 @@ def _load_email_model():
     return _email_model, _email_vectorizer
 
 
+def _load_sms_model():
+    global _sms_model, _sms_vectorizer
+    if _sms_model is None:
+        _sms_model = joblib.load(MODEL_DIR / "sms_classifier.pkl")
+        _sms_vectorizer = joblib.load(MODEL_DIR / "sms_vectorizer.pkl")
+    return _sms_model, _sms_vectorizer
+
+
 def predict_job_scam_probability(text: str) -> float:
     model, vectorizer = _load_job_model()
     X = vectorizer.transform([text])
@@ -36,4 +46,11 @@ def predict_email_phishing_probability(text: str) -> float:
     model, vectorizer = _load_email_model()
     X = vectorizer.transform([text])
     proba = model.predict_proba(X)[0]  # [prob_legit, prob_phishing]
+    return round(float(proba[1]) * 100, 1)
+
+
+def predict_sms_scam_probability(text: str) -> float:
+    model, vectorizer = _load_sms_model()
+    X = vectorizer.transform([text])
+    proba = model.predict_proba(X)[0]  # [prob_ham, prob_spam]
     return round(float(proba[1]) * 100, 1)

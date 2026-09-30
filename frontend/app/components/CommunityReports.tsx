@@ -19,11 +19,23 @@ export default function CommunityReports({
 
     useEffect(() => {
         fetch(
-            `http://localhost:8000/api/reports/${encodeURIComponent(targetValue)}`
+            `/backend/api/reports/${encodeURIComponent(targetValue)}`
         )
-            .then((res) => res.json())
-            .then(setReports)
-            .catch(() => setReports([]));
+            .then(async (res) => {
+                const data: unknown = await res.json();
+
+                if (!res.ok || !Array.isArray(data)) {
+                    console.error("Failed to load community reports", res.status, data);
+                    setReports([]);
+                    return;
+                }
+
+                setReports(data as Report[]);
+            })
+            .catch((error) => {
+                console.error("Failed to load community reports", error);
+                setReports([]);
+            });
     }, [targetValue]);
 
     if (reports.length === 0) return null;
@@ -36,10 +48,7 @@ export default function CommunityReports({
 
             <div className="space-y-2">
                 {reports.map((r) => (
-                    <div
-                        key={r.id}
-                        className="bg-[#4A1515]/30 border border-[#4A1515] rounded-lg p-3 text-sm"
-                    >
+                    <div key={r.id} className="rounded-[16px] border border-[#F87171]/20 bg-[#F87171]/10 p-3 text-sm">
                         <p className="font-medium text-[#EF4444] capitalize">
                             {r.category.replace("_", " ")}
                         </p>

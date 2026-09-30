@@ -52,7 +52,7 @@ export default function ReportForm({ targetValue, targetType, onSuccess }: Props
         }
 
         try {
-            const res = await fetch("http://localhost:8000/api/report", {
+            const res = await fetch("/backend/api/report", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -78,13 +78,13 @@ export default function ReportForm({ targetValue, targetType, onSuccess }: Props
     }
 
     return (
-        <form onSubmit={handleSubmit} className="mt-3 space-y-3 bg-[#0B1120] border border-[#232E45] p-4 rounded-lg">
-            {error && <p className="text-[#EF4444] text-sm">{error}</p>}
+        <form onSubmit={handleSubmit} className="surface-soft mt-4 space-y-3 p-4">
+            {error && <p className="rounded-xl border border-[#F87171]/20 bg-[#F87171]/10 px-3 py-2 text-sm text-[#FCA5A5]">{error}</p>}
 
             <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-[#131B2E] border border-[#232E45] text-[#E8ECF1] rounded-lg px-3 py-2 text-sm"
+                className="field w-full px-3 py-2 text-sm"
             >
                 {categories.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -97,7 +97,7 @@ export default function ReportForm({ targetValue, targetType, onSuccess }: Props
                 placeholder="Describe what happened..."
                 rows={3}
                 required
-                className="w-full bg-[#131B2E] border border-[#232E45] text-[#E8ECF1] placeholder-[#8B95AB] rounded-lg px-3 py-2 text-sm resize-none"
+                className="field w-full resize-none px-3 py-2 text-sm placeholder:text-[#8B95AB]"
             />
 
             <div>
@@ -115,7 +115,7 @@ export default function ReportForm({ targetValue, targetType, onSuccess }: Props
             <button
                 type="submit"
                 disabled={submitting || uploadingImage}
-                className="bg-[#EF4444] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#DC2626] disabled:opacity-50 transition-colors"
+                className="rounded-xl bg-[#F87171] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#EF4444] disabled:opacity-50"
             >
                 {uploadingImage ? "Uploading image..." : submitting ? "Submitting..." : "Submit Report"}
             </button>

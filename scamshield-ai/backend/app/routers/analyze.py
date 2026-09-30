@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+import logging
 from sqlalchemy.orm import Session
 from urllib.parse import urlparse
 
@@ -13,13 +14,18 @@ from app.services.auth_service import get_current_user
 from app.services.report_service import get_community_reports_factor
 from app.services.job_analyzer import analyze_job_text
 from app.services.email_analyzer import analyze_email_text
+from app.services.sms_analyzer import analyze_sms_text
 from app.services.recommendation_engine import generate_recommendations
 from app.services.risk_fusion_engine import fuse_risk, build_anomaly_factor
 from app.services.website_analyzer import analyze_website_content
 from app.services.scorer import compute_rule_based_score
 from app.ml.collect_features import collect_ml_features
 from app.ml.predictor import predict_scam_probability
-from app.ml.text_predictor import predict_job_scam_probability, predict_email_phishing_probability
+from app.ml.text_predictor import (
+    predict_job_scam_probability,
+    predict_email_phishing_probability,
+    predict_sms_scam_probability,
+)
 from app.ml.explainability import explain_prediction
 from app.ml.anomaly_predictor import detect_anomaly
 from app.limiter import rate_limit
@@ -27,6 +33,7 @@ from app.services.normalized_write_service import write_normalized_scan
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def extract_domain(value: str) -> str:
@@ -35,8 +42,40 @@ def extract_domain(value: str) -> str:
     return urlparse(value).netloc
 
 
+def persist_normalized_scan_safely(
+    db: Session,
+    user_id: str | None,
+    input_type: str,
+    raw_input: str,
+    domain_name: str | None,
+    trust_score: int,
+    verdict: str,
+    factors: list,
+    ml_probability: float,
+    ml_model_name: str,
+    explanation: list | None,
+) -> None:
+    try:
+        write_normalized_scan(
+            db=db,
+            user_id=user_id,
+            input_type=input_type,
+            raw_input=raw_input,
+            domain_name=domain_name,
+            trust_score=trust_score,
+            verdict=verdict,
+            factors=factors,
+            ml_probability=ml_probability,
+            ml_model_name=ml_model_name,
+            explanation=explanation,
+        )
+    except Exception:
+        db.rollback()
+        logger.exception("Normalized %s scan write failed; returning the completed scan result", input_type)
+
+
 @router.post("/analyze", response_model=AnalyzeResponse)
-async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), _: None = Depends(rate_limit(10, 60))):
+async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
     domain = extract_domain(body.value)
 
     cached = get_recent_scan(db, domain)
@@ -87,9 +126,9 @@ async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), _: None =
     db.commit()
 
 
-    write_normalized_scan(
+    persist_normalized_scan_safely(
         db=db,
-        user_id=None,  # wire to real user_id once you pass auth through /analyze
+        user_id=user.get("sub"),
         input_type=body.input_type,
         raw_input=body.value,
         domain_name=domain,
@@ -115,7 +154,7 @@ async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), _: None =
 
 
 @router.post("/analyze-job", response_model=AnalyzeResponse)
-async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), _: None = Depends(rate_limit(10, 60))):
+async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
     factors = analyze_job_text(body.value)
     ml_probability = predict_job_scam_probability(body.value)
     score, verdict, risk_breakdown = fuse_risk(factors, ml_probability)
@@ -131,9 +170,9 @@ async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), _: No
     )
     db.add(record)
     db.commit()
-    write_normalized_scan(
+    persist_normalized_scan_safely(
         db=db,
-        user_id=None,
+        user_id=user.get("sub"),
         input_type="job",
         raw_input=body.value,
         domain_name=None,
@@ -159,7 +198,7 @@ async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), _: No
 
 
 @router.post("/analyze-email", response_model=AnalyzeResponse)
-async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), _: None = Depends(rate_limit(10, 60))):
+async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
     factors = analyze_email_text(body.value)
     ml_probability = predict_email_phishing_probability(body.value)
     score, verdict, risk_breakdown = fuse_risk(factors, ml_probability)
@@ -175,9 +214,9 @@ async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), _: 
     )
     db.add(record)
     db.commit()
-    write_normalized_scan(
+    persist_normalized_scan_safely(
         db=db,
-        user_id=None,
+        user_id=user.get("sub"),
         input_type="email",
         raw_input=body.value,
         domain_name=None,
@@ -192,6 +231,50 @@ async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), _: 
     return AnalyzeResponse(
         input_value=body.value[:200] + ("..." if len(body.value) > 200 else ""),
         input_type="email",
+        trust_score=score,
+        verdict=verdict,
+        factors=factors,
+        ml_scam_probability=ml_probability,
+        recommendations=recommendations,
+        risk_breakdown=risk_breakdown,
+        explanation=[],
+    )
+
+
+@router.post("/analyze-sms", response_model=AnalyzeResponse)
+async def analyze_sms(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
+    factors = analyze_sms_text(body.value)
+    ml_probability = predict_sms_scam_probability(body.value)
+    score, verdict, risk_breakdown = fuse_risk(factors, ml_probability)
+    recommendations = generate_recommendations(factors, verdict)
+
+    record = ScanRecord(
+        input_value=body.value[:500],
+        input_type="sms",
+        domain="N/A",
+        trust_score=score,
+        verdict=verdict,
+        factors=[f.dict() for f in factors],
+    )
+    db.add(record)
+    db.commit()
+    persist_normalized_scan_safely(
+        db=db,
+        user_id=user.get("sub"),
+        input_type="sms",
+        raw_input=body.value,
+        domain_name=None,
+        trust_score=score,
+        verdict=verdict,
+        factors=factors,
+        ml_probability=ml_probability,
+        ml_model_name="sms_logreg",
+        explanation=None,
+    )
+
+    return AnalyzeResponse(
+        input_value=body.value[:200] + ("..." if len(body.value) > 200 else ""),
+        input_type="sms",
         trust_score=score,
         verdict=verdict,
         factors=factors,

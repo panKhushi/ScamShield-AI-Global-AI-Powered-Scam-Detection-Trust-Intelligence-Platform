@@ -23,7 +23,7 @@ export default function Navbar() {
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-3 text-white transition hover:opacity-90">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#22D3B8] to-[#34D399] shadow-lg shadow-[#22D3B8]/30">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-[14px] bg-[#D9FFF5] shadow-lg shadow-[#22D3B8]/20">
                         <span className="h-2.5 w-2.5 rounded-full bg-[#07111f]" />
                     </span>
                     <span className="font-display text-lg font-bold tracking-tight">
@@ -37,10 +37,10 @@ export default function Navbar() {
                         <Link
                             key={link.href}
                             href={link.href}
-                            className={`rounded-full px-3 py-2 text-sm font-medium transition ${
+                            className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
                                 isActive(link.href)
-                                    ? "border border-[#22D3B8] bg-[#22D3B8]/10 text-[#22D3B8]"
-                                    : "border border-white/10 text-[#DCEAFB] hover:border-[#22D3B8]/50 hover:text-white"
+                                    ? "border-[#22D3B8]/50 bg-[#22D3B8]/10 text-[#8FFAE0]"
+                                    : "border-white/10 text-[#DCEAFB] hover:border-[#22D3B8]/50 hover:text-white"
                             }`}
                         >
                             {link.label}
@@ -76,7 +76,7 @@ export default function Navbar() {
                     ) : (
                         <Link
                             href="/login"
-                            className="rounded-full bg-gradient-to-r from-[#22D3B8] to-[#34D399] px-4 py-2 text-sm font-bold text-[#07131C] shadow-lg shadow-[#22D3B8]/20 transition hover:scale-105"
+                            className="rounded-xl bg-[#D9FFF5] px-4 py-2 text-sm font-bold text-[#06201B] shadow-lg shadow-[#22D3B8]/20 transition hover:bg-white"
                         >
                             Log in
                         </Link>

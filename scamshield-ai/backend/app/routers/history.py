@@ -8,7 +8,7 @@ router = APIRouter()
 
 @router.get("/history")
 def get_history(
-    limit: int = 20,
+    limit: int = 100,
     db: Session = Depends(get_db),
     user: dict | None = Depends(get_optional_current_user),
 ):
@@ -26,6 +26,7 @@ def get_history(
             "domain": r.domain,
             "trust_score": r.trust_score,
             "verdict": r.verdict,
+            "factors": r.factors or [],
             "created_at": r.created_at,
         }
         for r in records

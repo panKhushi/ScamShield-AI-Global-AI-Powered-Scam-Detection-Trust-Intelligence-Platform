@@ -22,6 +22,7 @@ def submit_report(
         target_type=request.target_type,
         category=request.category,
         description=request.description,
+        evidence_url=request.evidence_url,
     )
     db.add(report)
     db.commit()
@@ -33,11 +34,12 @@ def submit_report(
         target_value=report.target_value,
         category=report.category,
         description=report.description,
+        evidence_url=report.evidence_url,
         created_at=report.created_at.isoformat(),
     )
 
 
-@router.get("/reports/{target_value}")
+@router.get("/reports/{target_value:path}")
 def get_reports_for_target(target_value: str, db: Session = Depends(get_db)):
     reports = (
         db.query(Report)
@@ -50,6 +52,7 @@ def get_reports_for_target(target_value: str, db: Session = Depends(get_db)):
             "id": r.id,
             "category": r.category,
             "description": r.description,
+            "evidence_url": r.evidence_url,
             "created_at": r.created_at,
         }
         for r in reports

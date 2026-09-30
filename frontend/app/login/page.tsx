@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
@@ -8,10 +8,18 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isSignUp, setIsSignUp] = useState(false);
+    const [nextPath, setNextPath] = useState("/");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const supabase = createClient();
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const requestedPath = params.get("next");
+        if (requestedPath?.startsWith("/")) setNextPath(requestedPath);
+        if (params.get("mode") === "signup") setIsSignUp(true);
+    }, []);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -27,13 +35,13 @@ export default function LoginPage() {
         if (error) {
             setError(error.message);
         } else {
-            router.push("/");
+            router.push(nextPath);
         }
     }
 
     return (
         <main className="flex min-h-screen items-center justify-center px-4 py-12">
-            <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0D1728]/90 p-6 shadow-[0_25px_80px_rgba(2,6,23,0.65)] backdrop-blur-xl sm:p-8">
+            <div className="surface w-full max-w-md p-6 sm:p-8">
                 <div className="mb-6 text-center">
                     <span className="inline-flex items-center gap-2 rounded-full border border-[#22D3B8]/30 bg-[#22D3B8]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8FFAE0]">
                         Secure Access
@@ -57,7 +65,7 @@ export default function LoginPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="w-full rounded-2xl border border-white/10 bg-[#0F1C2F] px-4 py-3 text-sm text-white placeholder:text-[#7E8BA4] outline-none transition focus:border-[#22D3B8]/60 focus:bg-[#122238]"
+                            className="field w-full px-4 py-3 text-sm placeholder:text-[#7E8BA4]"
                         />
                     </div>
 
@@ -70,14 +78,14 @@ export default function LoginPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             minLength={6}
-                            className="w-full rounded-2xl border border-white/10 bg-[#0F1C2F] px-4 py-3 text-sm text-white placeholder:text-[#7E8BA4] outline-none transition focus:border-[#22D3B8]/60 focus:bg-[#122238]"
+                            className="field w-full px-4 py-3 text-sm placeholder:text-[#7E8BA4]"
                         />
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full rounded-2xl bg-gradient-to-r from-[#22D3B8] to-[#34D399] px-4 py-3 text-sm font-bold text-[#07131C] shadow-lg shadow-[#22D3B8]/20 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full rounded-[16px] bg-[#D9FFF5] px-4 py-3 text-sm font-bold text-[#06201B] shadow-lg shadow-[#22D3B8]/20 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {loading ? "Please wait..." : isSignUp ? "Create account" : "Log In"}
                     </button>

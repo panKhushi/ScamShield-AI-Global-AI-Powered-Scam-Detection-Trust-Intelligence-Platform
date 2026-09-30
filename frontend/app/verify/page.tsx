@@ -57,7 +57,7 @@ export default function VerifyPage() {
             <div className="relative w-full max-w-6xl">
                 <div className="ambient-glow absolute inset-x-0 top-0 -z-10 mx-auto h-72 w-72 rounded-full bg-[#22D3B8]/20 blur-3xl" />
 
-                <section className="reveal-up interactive-panel rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.7)] backdrop-blur-xl sm:p-8">
+                <section className="surface reveal-up p-5 sm:p-8">
                     <div className="reveal-up reveal-delay-1 mb-8 flex flex-col items-center text-center">
                         <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#22D3B8]/30 bg-[#22D3B8]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8FFAE0]">
                             Verification
@@ -79,8 +79,8 @@ export default function VerifyPage() {
                                         setMode(m);
                                         setResult(null);
                                     }}
-                                    className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${mode === m
-                                            ? "bg-gradient-to-r from-[#22D3B8] to-[#34D399] text-[#06131A] shadow-lg shadow-[#22D3B8]/30"
+                                        className={`flex-1 rounded-[14px] px-4 py-3 text-sm font-semibold transition-all duration-200 ${mode === m
+                                            ? "bg-[#D9FFF5] text-[#06201B] shadow-lg shadow-[#22D3B8]/20"
                                             : "bg-transparent text-[#8B95AB] hover:bg-white/5 hover:text-white"
                                         }`}
                                 >
@@ -97,13 +97,13 @@ export default function VerifyPage() {
                                     value={companyName}
                                     onChange={(e) => setCompanyName(e.target.value)}
                                     placeholder="Company name (e.g. Google)"
-                                    className="rounded-2xl border border-white/10 bg-[#0F1C2F] px-4 py-3.5 text-sm text-white placeholder:text-[#7E8BA4] outline-none transition focus:border-[#22D3B8]/60 focus:bg-[#122238]"
+                                    className="field px-4 py-3.5 text-sm placeholder:text-[#7E8BA4]"
                                 />
                                 <input
                                     value={website}
                                     onChange={(e) => setWebsite(e.target.value)}
                                     placeholder="Claimed website (e.g. google.com)"
-                                    className="rounded-2xl border border-white/10 bg-[#0F1C2F] px-4 py-3.5 text-sm text-white placeholder:text-[#7E8BA4] outline-none transition focus:border-[#22D3B8]/60 focus:bg-[#122238]"
+                                    className="field px-4 py-3.5 text-sm placeholder:text-[#7E8BA4]"
                                 />
                             </>
                         ) : (
@@ -112,13 +112,13 @@ export default function VerifyPage() {
                                     value={recruiterEmail}
                                     onChange={(e) => setRecruiterEmail(e.target.value)}
                                     placeholder="Recruiter's email address"
-                                    className="rounded-2xl border border-white/10 bg-[#0F1C2F] px-4 py-3.5 text-sm text-white placeholder:text-[#7E8BA4] outline-none transition focus:border-[#22D3B8]/60 focus:bg-[#122238]"
+                                    className="field px-4 py-3.5 text-sm placeholder:text-[#7E8BA4]"
                                 />
                                 <input
                                     value={claimedCompany}
                                     onChange={(e) => setClaimedCompany(e.target.value)}
                                     placeholder="Company they claim to represent"
-                                    className="rounded-2xl border border-white/10 bg-[#0F1C2F] px-4 py-3.5 text-sm text-white placeholder:text-[#7E8BA4] outline-none transition focus:border-[#22D3B8]/60 focus:bg-[#122238]"
+                                    className="field px-4 py-3.5 text-sm placeholder:text-[#7E8BA4]"
                                 />
                             </>
                         )}
@@ -126,7 +126,7 @@ export default function VerifyPage() {
                         <button
                             onClick={handleVerify}
                             disabled={loading}
-                            className="scan-button rounded-2xl bg-gradient-to-r from-[#22D3B8] to-[#1DB7A7] px-6 py-3.5 text-sm font-bold text-[#07131C] shadow-lg shadow-[#22D3B8]/20 transition hover:scale-[1.03] hover:shadow-[#22D3B8]/35 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="scan-button rounded-[16px] bg-[#D9FFF5] px-6 py-3.5 text-sm font-bold text-[#06201B] shadow-lg shadow-[#22D3B8]/20 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading ? "Verifying..." : "Verify"}
                         </button>
@@ -134,7 +134,7 @@ export default function VerifyPage() {
                 </section>
 
                 {result && (
-                    <section className="reveal-up interactive-panel mx-auto mt-8 w-full max-w-md rounded-[28px] border border-white/10 bg-[#0D1728]/90 p-5 shadow-[0_20px_60px_rgba(2,6,23,0.7)] backdrop-blur-xl sm:p-6">
+                    <section className="surface reveal-up mx-auto mt-8 w-full max-w-md p-5 sm:p-6">
                         <div className="mb-6 flex items-start justify-between gap-4">
                             <div className="min-w-0">
                                 <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-[#8B95AB]">Checked</p>

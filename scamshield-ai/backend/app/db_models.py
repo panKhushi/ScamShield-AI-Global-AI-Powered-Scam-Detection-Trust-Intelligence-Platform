@@ -24,4 +24,5 @@ class Report(Base):
     target_type = Column(String)                    # "url" | "job" | "email"
     category = Column(String)                       # e.g. "payment_scam", "fake_job", "phishing"
     description = Column(String)
+    evidence_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
