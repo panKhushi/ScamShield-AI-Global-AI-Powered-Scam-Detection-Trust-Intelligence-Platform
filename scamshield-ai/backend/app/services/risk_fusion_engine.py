@@ -10,7 +10,7 @@ RISK_WEIGHTS = {
     "community": 0.10,
     "anomaly": 0.10,
     "website": 0.20,
-    "entity": 0.10,   # reserved — not yet implemented
+    "historical": 0.10,
 }
 
 STATUS_POINTS = {"good": 100, "warning": 50, "bad": 0}
@@ -62,6 +62,7 @@ def fuse_risk(factors: list[ScoreFactor], ml_scam_probability: float) -> tuple[i
     domain_score = compute_component_score(factors, ["Domain Age"])
     threat_intel_score = compute_component_score(factors, ["Google Safe Browsing", "VirusTotal"])
     community_score = compute_component_score(factors, ["Community Reports"])
+    historical_score = compute_component_score(factors, ["Historical Intelligence"])
     anomaly_score = compute_component_score(factors, ["Anomaly Detection"])
     website_score = compute_component_score(
         factors, ["Login Form Detected", "OTP Request Detected", "Payment Form Detected", "Business Legitimacy Signals"]
@@ -72,6 +73,7 @@ def fuse_risk(factors: list[ScoreFactor], ml_scam_probability: float) -> tuple[i
         "domain": domain_score,
         "threat_intelligence": threat_intel_score,
         "community": community_score,
+        "historical": historical_score,
         "nlp_ml": nlp_ml_score,
         "anomaly": anomaly_score,
         "website": website_score,

@@ -14,7 +14,7 @@ DEBUG_ERRORS = os.getenv("SCAMSHIELD_DEBUG", "false").lower() in {"1", "true", "
 
 from app.database import Base, engine
 from app import db_models, db_models_v2
-from app.routers import analyze, history, reports, verification
+from app.routers import analytics, analyze, history, reports, reports_admin, verification
 
 app = FastAPI(title="ScamShield AI API")
 
@@ -44,7 +44,9 @@ app.add_middleware(
 app.include_router(analyze.router, prefix="/api")
 app.include_router(history.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(reports_admin.router, prefix="/api")
 app.include_router(verification.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
 
 
 @app.get("/")

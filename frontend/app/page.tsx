@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { useAuth } from "./providers/AuthProvider";
 import ReportForm from "./components/ReportForm";
 import CommunityReports from "./components/CommunityReports";
-import { BriefcaseBusiness, Globe2, Mail, MessageSquareText } from "lucide-react";
+import { BriefcaseBusiness, Globe2, Mail, MessageSquareText, Phone } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedNumber, PageTransition, ScanLoader, revealGroup, revealItem } from "./components/Motion";
 
@@ -25,6 +25,21 @@ type FeatureExplanation = {
   direction: string;
 };
 
+type HistoricalIntelligence = {
+  entity_type: string;
+  found: boolean;
+  first_seen: string | null;
+  last_seen: string | null;
+  reports_last_3_months: number;
+  scans_last_3_months: number;
+  recent_reports: number;
+  recency_status: string;
+  historical_risk: string;
+  trend: string;
+  matches: { match_type: string; similarity_score: number; classification: string | null; last_seen: string; source: string | null }[];
+  timeline: { date: string; event_type: string; source: string; classification: string | null; risk_score: number | null }[];
+};
+
 type AnalyzeResponse = {
   input_value: string;
   input_type: string;
@@ -35,15 +50,17 @@ type AnalyzeResponse = {
   recommendations: string[];
   risk_breakdown: RiskBreakdown;
   explanation: FeatureExplanation[];
+  historical_intelligence: HistoricalIntelligence | null;
 };
 
-type InputMode = "url" | "job" | "email" | "sms";
+type InputMode = "url" | "job" | "email" | "sms" | "phone";
 
 const modeIcons: Record<InputMode, string> = {
   url: "M4 5h16v14H4z M8 9h8 M8 13h5",
   job: "M4 7h16v12H4z M8 7V5h8v2 M8 12h8 M8 16h5",
   email: "M4 6h16v12H4z M4 7l8 6 8-6",
   sms: "M5 5h14v10H9l-4 4z M8 9h8 M8 12h5",
+  phone: "M7 4h3l2 5-2 2c1 2 2 3 4 4l2-2 4 2v3c0 1-1 2-2 2C11 20 4 13 4 6c0-1 1-2 3-2z",
 };
 
 export const scanTypeIcons = {
@@ -51,6 +68,7 @@ export const scanTypeIcons = {
   job: BriefcaseBusiness,
   email: Mail,
   sms: MessageSquareText,
+  phone: Phone,
 };
 
 function ModeIcon({ mode }: { mode: InputMode }) {
@@ -74,6 +92,7 @@ const modeConfig = {
   job: { label: "Job offer", shortLabel: "Job", placeholder: "Paste the job offer text here...", endpoint: "/api/analyze-job" },
   email: { label: "Email", shortLabel: "Email", placeholder: "Paste the email content here...", endpoint: "/api/analyze-email" },
   sms: { label: "SMS", shortLabel: "SMS", placeholder: "Paste the SMS message here...", endpoint: "/api/analyze-sms" },
+  phone: { label: "Phone", shortLabel: "Phone", placeholder: "Enter a phone number or message containing one...", endpoint: "/api/analyze-phone" },
 };
 
 export default function Home() {
@@ -82,6 +101,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
   const [showReportForm, setShowReportForm] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const tone = result ? scoreTone(result.trust_score) : null;
@@ -104,6 +124,7 @@ export default function Home() {
   async function handleAnalyze() {
     if (!input.trim()) return;
     setLoading(true);
+      setError("");
     setResult(null);
     setShowReportForm(false);
     try {
@@ -127,6 +148,7 @@ export default function Home() {
       setResult(data);
     } catch (err) {
       console.error(err);
+      setError(err instanceof Error ? err.message : "Analysis failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -177,7 +199,8 @@ export default function Home() {
           </div>
 
           <div className="reveal-up reveal-delay-3 mx-auto w-full max-w-2xl">
-            {mode === "url" ? (
+            {error && <p role="alert" className="mb-3 rounded-xl border border-[#F87171]/20 bg-[#F87171]/10 px-3 py-2 text-sm text-[#FCA5A5]">{error}</p>}
+            {mode === "url" || mode === "phone" ? (
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   value={input}
@@ -281,6 +304,52 @@ export default function Home() {
                 </motion.div>
               </div>
             </div>
+
+            {result.historical_intelligence && (
+              <section className="border-b border-white/10 py-5">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8B95AB]">Historical intelligence</p>
+                    <h2 className="mt-1 text-sm font-semibold text-white">
+                      {result.historical_intelligence.found ? "Previous activity found" : "No previous records found"}
+                    </h2>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${result.historical_intelligence.historical_risk === "HIGH" ? "bg-[#F87171]/10 text-[#FCA5A5]" : result.historical_intelligence.historical_risk === "MEDIUM" ? "bg-[#FBBF24]/10 text-[#FCD34D]" : "bg-[#22D3B8]/10 text-[#8FFAE0]"}`}>
+                    {result.historical_intelligence.historical_risk}
+                  </span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ["First seen", result.historical_intelligence.first_seen ? new Date(result.historical_intelligence.first_seen).toLocaleDateString() : "Not available"],
+                    ["Last seen", result.historical_intelligence.last_seen ? new Date(result.historical_intelligence.last_seen).toLocaleDateString() : "Not available"],
+                    ["Reports / 3 months", result.historical_intelligence.reports_last_3_months],
+                    ["Recent reports", result.historical_intelligence.recent_reports],
+                  ].map(([label, value]) => (
+                    <div key={label} className="surface-soft p-3">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-[#718098]">{label}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#DCEAFB]">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-[#9CA9C0]">
+                  Recency: {result.historical_intelligence.recency_status.replaceAll("_", " ").toLowerCase()} · Trend: {result.historical_intelligence.trend.replaceAll("_", " ").toLowerCase()}
+                </p>
+                {!result.historical_intelligence.found && (
+                  <p className="mt-3 text-xs leading-5 text-[#8B95AB]">No historical record does not mean this entity is safe. ScamShield has insufficient historical evidence for it.</p>
+                )}
+                {result.historical_intelligence.timeline.length > 0 && (
+                  <div className="mt-4 border-l border-[#22D3B8]/30 pl-4">
+                    {result.historical_intelligence.timeline.map((event, index) => (
+                      <div key={`${event.date}-${index}`} className="relative pb-3 last:pb-0">
+                        <span className="absolute -left-[21px] top-1 h-2 w-2 rounded-full bg-[#22D3B8]" />
+                        <p className="text-xs font-semibold text-[#DCEAFB]">{event.event_type === "report" ? "Report" : "Scan"} · {new Date(event.date).toLocaleDateString()}</p>
+                        <p className="mt-0.5 text-xs text-[#718098]">{event.source.replaceAll("_", " ")} {event.classification ? `· ${event.classification}` : ""}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
 
             {result.recommendations && result.recommendations.length > 0 && (
               <details open className="mt-6 border-b border-white/10 pb-5">

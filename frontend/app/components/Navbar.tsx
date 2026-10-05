@@ -16,6 +16,7 @@ export default function Navbar() {
         { href: "/", label: "Home" },
         { href: "/verify", label: "Verify" },
         { href: "/history", label: "History" },
+        { href: "/admin", label: "Admin" },
     ];
 
     return (

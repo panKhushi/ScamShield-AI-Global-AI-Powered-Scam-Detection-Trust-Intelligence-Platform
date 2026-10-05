@@ -43,6 +43,11 @@ export default function ReportForm({ targetValue, targetType, onSuccess }: Props
 
         let evidenceUrl: string | null = null;
         if (file) {
+            if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+                setError("Evidence must be an image smaller than 5 MB.");
+                setSubmitting(false);
+                return;
+            }
             setUploadingImage(true);
             evidenceUrl = await uploadEvidenceImage(file);
             setUploadingImage(false);

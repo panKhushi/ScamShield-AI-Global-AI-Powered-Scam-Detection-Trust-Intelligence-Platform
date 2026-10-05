@@ -18,7 +18,7 @@ import sys
 from sqlalchemy import inspect, text, Integer, String, JSON, DateTime
 from sqlalchemy.exc import SQLAlchemyError
 from app.database import engine, Base
-from app.db_models import ScanRecord, Report
+from app.db_models import HistoricalEvent, HistoricalRecord, Report, ScanRecord
 
 # Map SQLAlchemy column types to database-specific SQL types
 def get_sql_type(column):
@@ -128,8 +128,9 @@ def main():
     db_url = engine.url
     print(f"\nConnected to: {db_url.drivername}://{db_url.host or 'local'}/{db_url.database or 'database'}")
     
-    # List of model classes to migrate
-    models = [ScanRecord, Report]
+    # Create newly introduced tables, then add missing columns to existing tables.
+    Base.metadata.create_all(bind=engine)
+    models = [ScanRecord, Report, HistoricalRecord, HistoricalEvent]
     
     all_success = True
     for model in models:

@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BriefcaseBusiness, ChevronDown, Globe2, Mail, MessageSquareText, Search, ShieldAlert, ShieldCheck, ShieldQuestion, Sparkles } from "lucide-react";
+import { BriefcaseBusiness, ChevronDown, Globe2, Mail, MessageSquareText, Phone, Search, ShieldAlert, ShieldCheck, ShieldQuestion, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createClient } from "@/lib/supabase";
 import { PageTransition, revealGroup, revealItem } from "../components/Motion";
 
 type Factor = { name: string; status: string; detail: string };
 type HistoryItem = { id: number; input_value: string; input_type: string; domain: string; trust_score: number; verdict: string; factors: Factor[]; created_at: string };
-type FilterType = "all" | "url" | "job" | "email" | "sms";
+type TrendPoint = { date: string; scans: number; reports: number; dangerous: number };
+type FilterType = "all" | "url" | "job" | "email" | "sms" | "phone";
 type RiskFilter = "all" | "safe" | "suspicious" | "dangerous";
 
-const typeLabels: Record<string, string> = { url: "URL", job: "Job", email: "Email", sms: "SMS" };
-const typeIcons = { url: Globe2, job: BriefcaseBusiness, email: Mail, sms: MessageSquareText };
+const typeLabels: Record<string, string> = { url: "URL", job: "Job", email: "Email", sms: "SMS", phone: "Phone" };
+const typeIcons = { url: Globe2, job: BriefcaseBusiness, email: Mail, sms: MessageSquareText, phone: Phone };
 
 function getScoreTone(score: number) {
     if (score >= 70) return "text-[#67E8C5]";
@@ -48,6 +49,7 @@ export default function History() {
     const [typeFilter, setTypeFilter] = useState<FilterType>("all");
     const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
     const [expandedId, setExpandedId] = useState<number | null>(null);
+    const [trendPoints, setTrendPoints] = useState<TrendPoint[]>([]);
 
     useEffect(() => {
         const supabase = createClient();
@@ -55,11 +57,18 @@ export default function History() {
             const headers: HeadersInit = { "Content-Type": "application/json" };
             const token = data.session?.access_token;
             if (token) headers.Authorization = `Bearer ${token}`;
-            fetch("http://localhost:8000/api/history?limit=100", { headers })
+            fetch("/backend/api/history?limit=100", { headers })
                 .then((res) => res.json())
                 .then((data) => setItems(Array.isArray(data) ? data : []))
                 .catch(() => setItems([]));
         });
+    }, []);
+
+    useEffect(() => {
+        fetch("/backend/api/analytics/trends")
+            .then((response) => response.json())
+            .then((data) => setTrendPoints(Array.isArray(data?.points) ? data.points : []))
+            .catch(() => setTrendPoints([]));
     }, []);
 
     const filteredItems = useMemo(() => {
@@ -103,6 +112,22 @@ export default function History() {
                             <div className="mb-5 flex items-end justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8B95AB]">Recent trend</p><h2 className="mt-1 font-display text-lg font-bold text-white">Trust score over time</h2></div><span className="text-xs text-[#718098]">Last {trend.length} scans</span></div>
                             {trend.length > 0 && <div className="flex h-40 items-end gap-2 sm:gap-4">{trend.map((item) => <div key={item.id} className="group flex min-w-0 flex-1 flex-col items-center gap-2"><div className="relative flex h-32 w-full items-end"><div className="w-full rounded-t-lg bg-gradient-to-t from-[#22D3B8]/30 to-[#67E8C5] transition-all group-hover:from-[#22D3B8]/50" style={{ height: `${Math.max((item.trust_score / maxTrendScore) * 100, 8)}%` }} title={`${item.trust_score} trust`} /></div><span className="max-w-full truncate text-[10px] text-[#718098]">{typeLabels[item.input_type] ?? "Scan"}</span></div>)}</div>}
                         </section>
+
+                        {trendPoints.length > 0 && (
+                            <section className="surface mb-6 p-5 sm:p-6">
+                                <div className="mb-5 flex items-end justify-between">
+                                    <div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8B95AB]">Platform signals</p><h2 className="mt-1 font-display text-lg font-bold text-white">Scam activity over time</h2></div>
+                                    <span className="text-xs text-[#718098]">Last 90 days</span>
+                                </div>
+                                <div className="flex h-32 items-end gap-1">
+                                    {trendPoints.slice(-30).map((point) => {
+                                        const total = Math.max(point.scans + point.reports, 1);
+                                        return <div key={point.date} className="group relative flex h-full min-w-0 flex-1 items-end" title={`${point.date}: ${point.scans} scans, ${point.reports} reports`}><div className="w-full rounded-t bg-[#60A5FA]/40" style={{ height: `${Math.max((total / Math.max(...trendPoints.map((item) => item.scans + item.reports), 1)) * 100, 5)}%` }} /><div className="absolute bottom-0 w-full rounded-t bg-[#F87171]/80" style={{ height: `${Math.max((point.dangerous / total) * 100, point.dangerous ? 5 : 0)}%` }} /></div>;
+                                    })}
+                                </div>
+                                <p className="mt-3 text-xs text-[#718098]">Blue shows scan volume; red shows dangerous or confirmed scam activity.</p>
+                            </section>
+                        )}
 
                         <section className="surface overflow-hidden">
                             <div className="border-b border-white/10 p-4 sm:p-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#718098]" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search scans..." className="field w-full py-2.5 pl-10 pr-3 text-sm placeholder:text-[#718098]" /></div><div className="grid grid-cols-2 gap-2 sm:flex"><select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as FilterType)} className="field px-3 py-2 text-xs"><option value="all">All types</option><option value="url">URL</option><option value="job">Job</option><option value="email">Email</option><option value="sms">SMS</option></select><select value={riskFilter} onChange={(e) => setRiskFilter(e.target.value as RiskFilter)} className="field px-3 py-2 text-xs"><option value="all">All risk</option><option value="safe">Safe</option><option value="suspicious">Suspicious</option><option value="dangerous">Dangerous</option></select></div></div><p className="mt-3 text-xs text-[#718098]">Showing {filteredItems.length} of {items.length} scans</p></div>

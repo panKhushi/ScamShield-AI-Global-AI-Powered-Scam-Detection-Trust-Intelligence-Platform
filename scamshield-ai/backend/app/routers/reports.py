@@ -43,7 +43,7 @@ def submit_report(
 def get_reports_for_target(target_value: str, db: Session = Depends(get_db)):
     reports = (
         db.query(Report)
-        .filter(Report.target_value == target_value)
+        .filter(Report.target_value == target_value, Report.review_status.in_(["approved", None]))
         .order_by(Report.created_at.desc())
         .all()
     )

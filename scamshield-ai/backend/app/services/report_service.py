@@ -9,7 +9,11 @@ def get_report_count(db: Session, target_value: str) -> int:
     cutoff = datetime.now(timezone.utc) - timedelta(days=REPORT_LOOKBACK_DAYS)
     return (
         db.query(Report)
-        .filter(Report.target_value == target_value, Report.created_at >= cutoff)
+        .filter(
+            Report.target_value == target_value,
+            Report.created_at >= cutoff,
+            Report.review_status.in_(["approved", None]),
+        )
         .count()
     )
 

@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 from urllib.parse import urlparse
 
-from app.models import AnalyzeRequest, AnalyzeResponse
+from app.models import AnalyzeRequest, AnalyzeResponse, HistoricalIntelligence
 from app.database import get_db
 from app.db_models import ScanRecord
 from app.services.whois_service import analyze_whois, get_raw_domain_age_days
@@ -15,6 +15,8 @@ from app.services.report_service import get_community_reports_factor
 from app.services.job_analyzer import analyze_job_text
 from app.services.email_analyzer import analyze_email_text
 from app.services.sms_analyzer import analyze_sms_text
+from app.services.phone_analyzer import analyze_phone
+from app.services.email_sender_analyzer import analyze_email_sender
 from app.services.recommendation_engine import generate_recommendations
 from app.services.risk_fusion_engine import fuse_risk, build_anomaly_factor
 from app.services.website_analyzer import analyze_website_content
@@ -30,6 +32,7 @@ from app.ml.explainability import explain_prediction
 from app.ml.anomaly_predictor import detect_anomaly
 from app.limiter import rate_limit
 from app.services.normalized_write_service import write_normalized_scan
+from app.services.historical_intelligence import check_history, historical_factor, record_scan
 
 
 router = APIRouter()
@@ -74,9 +77,34 @@ def persist_normalized_scan_safely(
         logger.exception("Normalized %s scan write failed; returning the completed scan result", input_type)
 
 
+def get_historical_safely(db: Session, input_type: str, value: str) -> HistoricalIntelligence:
+    try:
+        return check_history(db, input_type, value)
+    except Exception:
+        db.rollback()
+        logger.exception("Historical lookup failed for %s", input_type)
+        return HistoricalIntelligence(entity_type=input_type)
+
+
+def persist_historical_scan_safely(
+    db: Session,
+    input_type: str,
+    value: str,
+    verdict: str,
+    trust_score: int,
+    user_id: str | None,
+) -> None:
+    try:
+        record_scan(db, input_type, value, verdict, trust_score, user_id)
+    except Exception:
+        db.rollback()
+        logger.exception("Historical %s scan write failed", input_type)
+
+
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
     domain = extract_domain(body.value)
+    historical = get_historical_safely(db, "url", body.value)
 
     cached = get_recent_scan(db, domain)
     if cached:
@@ -90,13 +118,14 @@ async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), user: dic
             recommendations=[],
             risk_breakdown={},
             explanation=[],
+            historical_intelligence=historical,
         )
 
     whois_factor = analyze_whois(domain)
     safe_browsing_factor = await analyze_safe_browsing(body.value)
     virustotal_factor = await analyze_virustotal(body.value)
     community_factor = get_community_reports_factor(db, domain)
-    factors = [whois_factor, safe_browsing_factor, virustotal_factor, community_factor]
+    factors = [whois_factor, safe_browsing_factor, virustotal_factor, community_factor, historical_factor(historical)]
 
     website_factors = analyze_website_content(body.value)
     factors.extend(website_factors)
@@ -124,7 +153,7 @@ async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), user: dic
     )
     db.add(record)
     db.commit()
-
+    persist_historical_scan_safely(db, "url", body.value, verdict, final_score, user.get("sub"))
 
     persist_normalized_scan_safely(
         db=db,
@@ -150,12 +179,15 @@ async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), user: dic
         recommendations=recommendations,
         risk_breakdown=risk_breakdown,
         explanation=explanation,
+        historical_intelligence=historical,
     )
 
 
 @router.post("/analyze-job", response_model=AnalyzeResponse)
 async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
+    historical = get_historical_safely(db, "job", body.value)
     factors = analyze_job_text(body.value)
+    factors.append(historical_factor(historical))
     ml_probability = predict_job_scam_probability(body.value)
     score, verdict, risk_breakdown = fuse_risk(factors, ml_probability)
     recommendations = generate_recommendations(factors, verdict)
@@ -170,6 +202,7 @@ async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), user:
     )
     db.add(record)
     db.commit()
+    persist_historical_scan_safely(db, "job", body.value, verdict, score, user.get("sub"))
     persist_normalized_scan_safely(
         db=db,
         user_id=user.get("sub"),
@@ -194,12 +227,15 @@ async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), user:
         recommendations=recommendations,
         risk_breakdown=risk_breakdown,
         explanation=[],
+        historical_intelligence=historical,
     )
 
 
 @router.post("/analyze-email", response_model=AnalyzeResponse)
 async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
-    factors = analyze_email_text(body.value)
+    historical = get_historical_safely(db, "email", body.value)
+    factors = analyze_email_text(body.value) + analyze_email_sender(body.value)
+    factors.append(historical_factor(historical))
     ml_probability = predict_email_phishing_probability(body.value)
     score, verdict, risk_breakdown = fuse_risk(factors, ml_probability)
     recommendations = generate_recommendations(factors, verdict)
@@ -214,6 +250,7 @@ async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), use
     )
     db.add(record)
     db.commit()
+    persist_historical_scan_safely(db, "email", body.value, verdict, score, user.get("sub"))
     persist_normalized_scan_safely(
         db=db,
         user_id=user.get("sub"),
@@ -238,12 +275,49 @@ async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), use
         recommendations=recommendations,
         risk_breakdown=risk_breakdown,
         explanation=[],
+        historical_intelligence=historical,
+    )
+
+
+@router.post("/analyze-phone", response_model=AnalyzeResponse)
+async def analyze_phone_number(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
+    historical = get_historical_safely(db, "phone", body.value)
+    factors = analyze_phone(body.value)
+    factors.append(historical_factor(historical))
+    score, verdict, risk_breakdown = fuse_risk(factors, 0.0)
+    recommendations = generate_recommendations(factors, verdict)
+
+    record = ScanRecord(
+        input_value=body.value[:500],
+        input_type="phone",
+        domain="N/A",
+        trust_score=score,
+        verdict=verdict,
+        factors=[factor.dict() for factor in factors],
+    )
+    db.add(record)
+    db.commit()
+    persist_historical_scan_safely(db, "phone", body.value, verdict, score, user.get("sub"))
+
+    return AnalyzeResponse(
+        input_value=body.value[:200],
+        input_type="phone",
+        trust_score=score,
+        verdict=verdict,
+        factors=factors,
+        ml_scam_probability=0.0,
+        recommendations=recommendations,
+        risk_breakdown=risk_breakdown,
+        explanation=[],
+        historical_intelligence=historical,
     )
 
 
 @router.post("/analyze-sms", response_model=AnalyzeResponse)
 async def analyze_sms(body: AnalyzeRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user), _: None = Depends(rate_limit(10, 60))):
+    historical = get_historical_safely(db, "sms", body.value)
     factors = analyze_sms_text(body.value)
+    factors.append(historical_factor(historical))
     ml_probability = predict_sms_scam_probability(body.value)
     score, verdict, risk_breakdown = fuse_risk(factors, ml_probability)
     recommendations = generate_recommendations(factors, verdict)
@@ -258,6 +332,7 @@ async def analyze_sms(body: AnalyzeRequest, db: Session = Depends(get_db), user:
     )
     db.add(record)
     db.commit()
+    persist_historical_scan_safely(db, "sms", body.value, verdict, score, user.get("sub"))
     persist_normalized_scan_safely(
         db=db,
         user_id=user.get("sub"),
@@ -282,6 +357,7 @@ async def analyze_sms(body: AnalyzeRequest, db: Session = Depends(get_db), user:
         recommendations=recommendations,
         risk_breakdown=risk_breakdown,
         explanation=[],
+        historical_intelligence=historical,
     )
 
 

@@ -2,9 +2,20 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.db_models import ScanRecord
+from app.models import AnalyzeRequest, HistoricalIntelligence
 from app.services.auth_service import get_optional_current_user
+from app.services.historical_intelligence import check_history
 
 router = APIRouter()
+
+
+@router.post("/history/check", response_model=HistoricalIntelligence)
+def check_entity_history(
+    request: AnalyzeRequest,
+    db: Session = Depends(get_db),
+    user: dict | None = Depends(get_optional_current_user),
+):
+    return check_history(db, request.input_type, request.value)
 
 @router.get("/history")
 def get_history(

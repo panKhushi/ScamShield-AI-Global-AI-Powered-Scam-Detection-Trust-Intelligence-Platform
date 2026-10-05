@@ -10,6 +10,7 @@ from app.services.safe_browsing_service import analyze_safe_browsing
 from app.services.virustotal_service import analyze_virustotal
 from app.services.risk_fusion_engine import fuse_risk
 from app.services.recommendation_engine import generate_recommendations
+from app.services.historical_intelligence import check_history, historical_factor, record_scan
 
 router = APIRouter()
 
@@ -26,11 +27,12 @@ async def verify_company(request: CompanyVerifyRequest, db: Session = Depends(ge
     domain = extract_domain(request.website)
 
     consistency_factor = verify_company_domain_match(request.company_name, domain)
+    historical = check_history(db, "url", request.website)
     whois_factor = analyze_whois(domain)
     safe_browsing_factor = await analyze_safe_browsing(request.website)
     virustotal_factor = await analyze_virustotal(request.website)
 
-    factors = [consistency_factor, whois_factor, safe_browsing_factor, virustotal_factor]
+    factors = [consistency_factor, whois_factor, safe_browsing_factor, virustotal_factor, historical_factor(historical)]
     score, verdict, risk_breakdown = fuse_risk(factors, ml_scam_probability=0.0)
     recommendations = generate_recommendations(factors, verdict)
 
@@ -44,6 +46,7 @@ async def verify_company(request: CompanyVerifyRequest, db: Session = Depends(ge
     )
     db.add(record)
     db.commit()
+    record_scan(db, "url", request.website, verdict, score, None)
 
     return AnalyzeResponse(
         input_value=f"{request.company_name} ({request.website})",
@@ -55,14 +58,16 @@ async def verify_company(request: CompanyVerifyRequest, db: Session = Depends(ge
         recommendations=recommendations,
         risk_breakdown=risk_breakdown,
         explanation=[],
+        historical_intelligence=historical,
     )
 
 
 @router.post("/verify-recruiter", response_model=AnalyzeResponse)
 async def verify_recruiter(request: RecruiterVerifyRequest, db: Session = Depends(get_db)):
     consistency_factor = verify_recruiter_email_domain(request.recruiter_email, request.claimed_company)
+    historical = check_history(db, "email", request.recruiter_email)
 
-    factors = [consistency_factor]
+    factors = [consistency_factor, historical_factor(historical)]
     score, verdict, risk_breakdown = fuse_risk(factors, ml_scam_probability=0.0)
     recommendations = generate_recommendations(factors, verdict)
 
@@ -76,6 +81,7 @@ async def verify_recruiter(request: RecruiterVerifyRequest, db: Session = Depend
     )
     db.add(record)
     db.commit()
+    record_scan(db, "email", request.recruiter_email, verdict, score, None)
 
     return AnalyzeResponse(
         input_value=f"{request.recruiter_email} claiming {request.claimed_company}",
@@ -87,4 +93,5 @@ async def verify_recruiter(request: RecruiterVerifyRequest, db: Session = Depend
         recommendations=recommendations,
         risk_breakdown=risk_breakdown,
         explanation=[],
+        historical_intelligence=historical,
     )
