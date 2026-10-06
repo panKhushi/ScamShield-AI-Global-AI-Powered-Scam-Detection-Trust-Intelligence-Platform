@@ -12,7 +12,7 @@ logger = logging.getLogger("scamshield")
 logging.basicConfig(level=logging.INFO)
 DEBUG_ERRORS = os.getenv("SCAMSHIELD_DEBUG", "false").lower() in {"1", "true", "yes"}
 
-from app.database import Base, engine
+from app.database import Base, engine, ensure_schema_compatibility
 from app import db_models, db_models_v2
 from app.routers import analytics, analyze, history, reports, reports_admin, verification
 
@@ -29,6 +29,7 @@ async def handle_unexpected_error(request: Request, exc: Exception) -> JSONRespo
 @app.on_event("startup")
 def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
+    ensure_schema_compatibility()
 
 app.add_middleware(
     CORSMiddleware,

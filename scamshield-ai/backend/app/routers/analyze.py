@@ -144,6 +144,7 @@ async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), user: dic
     recommendations = generate_recommendations(factors, verdict)
 
     record = ScanRecord(
+        user_id=user.get("sub"),
         input_value=body.value,
         input_type=body.input_type,
         domain=domain,
@@ -193,6 +194,7 @@ async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), user:
     recommendations = generate_recommendations(factors, verdict)
 
     record = ScanRecord(
+        user_id=user.get("sub"),
         input_value=body.value[:500],
         input_type="job",
         domain="N/A",
@@ -241,6 +243,7 @@ async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), use
     recommendations = generate_recommendations(factors, verdict)
 
     record = ScanRecord(
+        user_id=user.get("sub"),
         input_value=body.value[:500],
         input_type="email",
         domain="N/A",
@@ -288,6 +291,7 @@ async def analyze_phone_number(body: AnalyzeRequest, db: Session = Depends(get_d
     recommendations = generate_recommendations(factors, verdict)
 
     record = ScanRecord(
+        user_id=user.get("sub"),
         input_value=body.value[:500],
         input_type="phone",
         domain="N/A",
@@ -323,6 +327,7 @@ async def analyze_sms(body: AnalyzeRequest, db: Session = Depends(get_db), user:
     recommendations = generate_recommendations(factors, verdict)
 
     record = ScanRecord(
+        user_id=user.get("sub"),
         input_value=body.value[:500],
         input_type="sms",
         domain="N/A",

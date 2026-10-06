@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
+from sqlalchemy import Column, DateTime, String, Text, create_engine, inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -41,6 +41,26 @@ def _resolve_engine():
 engine = _resolve_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def ensure_schema_compatibility() -> None:
+    """Apply small, idempotent upgrades for databases created by older releases."""
+    columns = {
+        "review_status": Column(String, nullable=True, server_default="pending"),
+        "moderator_note": Column(Text, nullable=True),
+        "reviewed_by": Column(String, nullable=True),
+        "reviewed_at": Column(DateTime(timezone=True), nullable=True),
+    }
+    existing_columns = {column["name"] for column in inspect(engine).get_columns("reports")}
+
+    with engine.begin() as connection:
+        for name, column in columns.items():
+            if name in existing_columns:
+                continue
+            sql_type = column.type.compile(dialect=engine.dialect)
+            default = " DEFAULT 'pending'" if name == "review_status" else ""
+            connection.execute(text(f'ALTER TABLE reports ADD COLUMN "{name}" {sql_type}{default}'))
+
 
 def get_db():
     db = SessionLocal()

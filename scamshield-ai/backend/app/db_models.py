@@ -25,7 +25,7 @@ class Report(Base):
     category = Column(String)                       # e.g. "payment_scam", "fake_job", "phishing"
     description = Column(String)
     evidence_url = Column(String, nullable=True)
-    review_status = Column(String, nullable=True, default="pending", index=True)
+    review_status = Column(String, nullable=True, default="pending", server_default="pending", index=True)
     moderator_note = Column(Text, nullable=True)
     reviewed_by = Column(String, nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
