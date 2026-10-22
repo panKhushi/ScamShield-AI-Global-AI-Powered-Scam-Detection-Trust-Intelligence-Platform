@@ -4,6 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -53,7 +54,10 @@ def list_reports(
 ):
     query = db.query(Report).order_by(Report.created_at.desc())
     if status != "all":
-        query = query.filter(Report.review_status == status)
+        if status == "pending":
+            query = query.filter(or_(Report.review_status == "pending", Report.review_status.is_(None)))
+        else:
+            query = query.filter(Report.review_status == status)
     return [
         {
             "id": report.id,

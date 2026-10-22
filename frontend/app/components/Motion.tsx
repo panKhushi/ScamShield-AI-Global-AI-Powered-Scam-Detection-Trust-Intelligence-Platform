@@ -8,9 +8,9 @@ export function PageTransition({ children }: { children: ReactNode }) {
 
     return (
         <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24, ease: "easeOut" }}
+            initial={reduceMotion ? false : { opacity: 0, y: 14, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             className="flex min-h-0 flex-1 flex-col"
         >
             {children}
@@ -24,7 +24,6 @@ export function AnimatedNumber({ value }: { value: number }) {
 
     useEffect(() => {
         if (reduceMotion) {
-            setDisplayValue(value);
             return;
         }
 
@@ -40,19 +39,19 @@ export function AnimatedNumber({ value }: { value: number }) {
         return () => cancelAnimationFrame(frame);
     }, [reduceMotion, value]);
 
-    return <>{displayValue}</>;
+    return <>{reduceMotion ? value : displayValue}</>;
 }
 
 export function ScanLoader() {
     return (
-        <span className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center gap-2" role="status" aria-live="polite">
             <motion.span
                 aria-hidden="true"
                 className="h-4 w-4 rounded-full border-2 border-[#06201B]/30 border-t-[#06201B]"
                 animate={{ rotate: 360 }}
                 transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
             />
-            <span>Scanning...</span>
+            <span>Scanning securely...</span>
         </span>
     );
 }

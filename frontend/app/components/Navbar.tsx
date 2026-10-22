@@ -20,12 +20,13 @@ export default function Navbar() {
     ];
 
     return (
-        <nav className="sticky top-0 z-20 border-b border-white/10 bg-[#07111f]/80 backdrop-blur-xl">
+        <nav className="sticky top-0 z-30 border-b border-white/10 bg-[#07111f]/80 shadow-[0_10px_40px_rgba(2,6,23,0.18)] backdrop-blur-xl">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-3 text-white transition hover:opacity-90">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-[14px] bg-[#D9FFF5] shadow-lg shadow-[#22D3B8]/20">
+                <Link href="/" className="flex items-center gap-3 text-white transition hover:opacity-90" aria-label="ScamShield AI home">
+                    <span className="relative flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#D9FFF5] shadow-lg shadow-[#22D3B8]/20">
                         <span className="h-2.5 w-2.5 rounded-full bg-[#07111f]" />
+                        <span className="absolute -right-1 -top-1 status-dot" />
                     </span>
                     <span className="font-display text-lg font-bold tracking-tight">
                         ScamShield <span className="text-[#22D3B8]">AI</span>
@@ -33,15 +34,15 @@ export default function Navbar() {
                 </Link>
 
                 {/* Desktop Navigation */}
-                <div className="hidden md:flex md:items-center md:gap-6">
+                <div className="hidden md:flex md:items-center md:gap-1">
                     {navLinks.map((link) => (
                         <Link
                             key={link.href}
                             href={link.href}
-                            className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                            className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
                                 isActive(link.href)
                                     ? "border-[#22D3B8]/50 bg-[#22D3B8]/10 text-[#8FFAE0]"
-                                    : "border-white/10 text-[#DCEAFB] hover:border-[#22D3B8]/50 hover:text-white"
+                                    : "border-transparent text-[#9CA9C0] hover:border-white/10 hover:bg-white/5 hover:text-white"
                             }`}
                         >
                             {link.label}

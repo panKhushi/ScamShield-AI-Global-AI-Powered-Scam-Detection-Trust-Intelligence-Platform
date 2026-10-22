@@ -1,25 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [isSignUp, setIsSignUp] = useState(false);
-    const [nextPath, setNextPath] = useState("/");
+    const [isSignUp, setIsSignUp] = useState(() => new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("mode") === "signup");
+    const [nextPath] = useState(() => {
+        const requestedPath = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("next");
+        return requestedPath?.startsWith("/") ? requestedPath : "/";
+    });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const supabase = createClient();
-
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const requestedPath = params.get("next");
-        if (requestedPath?.startsWith("/")) setNextPath(requestedPath);
-        if (params.get("mode") === "signup") setIsSignUp(true);
-    }, []);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -40,7 +36,8 @@ export default function LoginPage() {
     }
 
     return (
-        <main className="flex min-h-screen items-center justify-center px-4 py-12">
+        <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+            <div className="ambient-glow absolute left-1/2 top-1/2 -z-10 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#22D3B8]/10 blur-3xl" />
             <div className="surface w-full max-w-md p-6 sm:p-8">
                 <div className="mb-6 text-center">
                     <span className="inline-flex items-center gap-2 rounded-full border border-[#22D3B8]/30 bg-[#22D3B8]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8FFAE0]">
@@ -49,7 +46,7 @@ export default function LoginPage() {
                     <h1 className="mt-4 font-display text-3xl font-bold text-white">
                         {isSignUp ? "Create account" : "Welcome back"}
                     </h1>
-                    <p className="mt-2 text-sm text-[#8B95AB]">
+                    <p className="mt-2 text-sm leading-6 text-[#8B95AB]">
                         {isSignUp ? "Join ScamShield AI and save your scan history." : "Log in to access your saved scam checks."}
                     </p>
                 </div>
@@ -58,8 +55,9 @@ export default function LoginPage() {
                     {error && <p className="rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-3 py-2 text-sm text-[#FCA5A5]">{error}</p>}
 
                     <div>
-                        <label className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-[#8B95AB]">Email</label>
+                        <label htmlFor="email" className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-[#8B95AB]">Email</label>
                         <input
+                            id="email"
                             type="email"
                             placeholder="you@example.com"
                             value={email}
@@ -70,8 +68,9 @@ export default function LoginPage() {
                     </div>
 
                     <div>
-                        <label className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-[#8B95AB]">Password</label>
+                        <label htmlFor="password" className="mb-2 block text-xs font-medium uppercase tracking-[0.15em] text-[#8B95AB]">Password</label>
                         <input
+                            id="password"
                             type="password"
                             placeholder="Minimum 6 characters"
                             value={password}

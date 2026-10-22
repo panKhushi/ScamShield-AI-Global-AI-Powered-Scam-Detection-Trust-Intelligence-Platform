@@ -130,16 +130,22 @@ export default function Home() {
     try {
       const supabase = createClient();
       const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      let token = sessionData.session?.access_token;
 
-      const res = await fetch(`/backend${modeConfig[mode].endpoint}`, {
+      const request = (accessToken?: string) => fetch(`/backend${modeConfig[mode].endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ input_type: mode, value: input }),
       });
+      let res = await request(token);
+      if (res.status === 401) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        token = refreshed.session?.access_token;
+        if (token) res = await request(token);
+      }
       if (!res.ok) {
         const errorBody = await res.text();
         throw new Error(`Analysis request failed (${res.status}): ${errorBody || res.statusText}`);
@@ -159,11 +165,12 @@ export default function Home() {
     <main className="min-h-screen px-4 pb-16 pt-8 text-[#E8ECF1] sm:pt-12">
       <div className="relative mx-auto w-full max-w-6xl">
         <div className="ambient-glow absolute -top-10 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-[#22D3B8]/15 blur-3xl" />
+        <div className="hero-orbit pointer-events-none -top-16 right-[-7rem] -z-10 hidden sm:block" aria-hidden="true" />
 
         <section className="surface reveal-up p-5 sm:p-8">
           <div className="reveal-up reveal-delay-1 mb-7 max-w-3xl">
             <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#22D3B8]/30 bg-[#22D3B8]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8FFAE0]">
-              ScamShield AI
+              <span className="status-dot signal-pulse" /> ScamShield AI
             </span>
             <h1 className="font-display max-w-2xl text-3xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
               Make the next message easier to trust.
@@ -332,7 +339,7 @@ export default function Home() {
                   ))}
                 </div>
                 <p className="mt-3 text-xs text-[#9CA9C0]">
-                  Recency: {result.historical_intelligence.recency_status.replaceAll("_", " ").toLowerCase()} · Trend: {result.historical_intelligence.trend.replaceAll("_", " ").toLowerCase()}
+                  Recency: {result.historical_intelligence.recency_status.replaceAll("_", " ").toLowerCase()} | Trend: {result.historical_intelligence.trend.replaceAll("_", " ").toLowerCase()}
                 </p>
                 {!result.historical_intelligence.found && (
                   <p className="mt-3 text-xs leading-5 text-[#8B95AB]">No historical record does not mean this entity is safe. ScamShield has insufficient historical evidence for it.</p>
@@ -342,8 +349,8 @@ export default function Home() {
                     {result.historical_intelligence.timeline.map((event, index) => (
                       <div key={`${event.date}-${index}`} className="relative pb-3 last:pb-0">
                         <span className="absolute -left-[21px] top-1 h-2 w-2 rounded-full bg-[#22D3B8]" />
-                        <p className="text-xs font-semibold text-[#DCEAFB]">{event.event_type === "report" ? "Report" : "Scan"} · {new Date(event.date).toLocaleDateString()}</p>
-                        <p className="mt-0.5 text-xs text-[#718098]">{event.source.replaceAll("_", " ")} {event.classification ? `· ${event.classification}` : ""}</p>
+                        <p className="text-xs font-semibold text-[#DCEAFB]">{event.event_type === "report" ? "Report" : "Scan"} | {new Date(event.date).toLocaleDateString()}</p>
+                        <p className="mt-0.5 text-xs text-[#718098]">{event.source.replaceAll("_", " ")} {event.classification ? `| ${event.classification}` : ""}</p>
                       </div>
                     ))}
                   </div>

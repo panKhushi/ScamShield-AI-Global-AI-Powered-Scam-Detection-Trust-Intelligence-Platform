@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BriefcaseBusiness, ChevronDown, Globe2, Mail, MessageSquareText, Phone, Search, ShieldAlert, ShieldCheck, ShieldQuestion, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createClient } from "@/lib/supabase";
-import { PageTransition, revealGroup, revealItem } from "../components/Motion";
+import { PageTransition, revealGroup } from "../components/Motion";
 
 type Factor = { name: string; status: string; detail: string };
 type HistoryItem = { id: number; input_value: string; input_type: string; domain: string; trust_score: number; verdict: string; factors: Factor[]; created_at: string };
@@ -50,6 +50,7 @@ export default function History() {
     const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [trendPoints, setTrendPoints] = useState<TrendPoint[]>([]);
+    const [now] = useState(() => Date.now());
 
     useEffect(() => {
         const supabase = createClient();
@@ -82,13 +83,13 @@ export default function History() {
     }, [items, query, riskFilter, typeFilter]);
 
     const stats = useMemo(() => {
-        const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const weekStart = now - 7 * 24 * 60 * 60 * 1000;
         return {
             scams: items.filter((item) => item.verdict === "dangerous").length,
             average: items.length ? Math.round(items.reduce((total, item) => total + item.trust_score, 0) / items.length) : 0,
             thisWeek: items.filter((item) => new Date(item.created_at).getTime() >= weekStart).length,
         };
-    }, [items]);
+    }, [items, now]);
 
     const trend = items.slice(0, 10).reverse();
     const maxTrendScore = Math.max(...trend.map((item) => item.trust_score), 100);
@@ -132,7 +133,7 @@ export default function History() {
                         <section className="surface overflow-hidden">
                             <div className="border-b border-white/10 p-4 sm:p-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#718098]" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search scans..." className="field w-full py-2.5 pl-10 pr-3 text-sm placeholder:text-[#718098]" /></div><div className="grid grid-cols-2 gap-2 sm:flex"><select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as FilterType)} className="field px-3 py-2 text-xs"><option value="all">All types</option><option value="url">URL</option><option value="job">Job</option><option value="email">Email</option><option value="sms">SMS</option></select><select value={riskFilter} onChange={(e) => setRiskFilter(e.target.value as RiskFilter)} className="field px-3 py-2 text-xs"><option value="all">All risk</option><option value="safe">Safe</option><option value="suspicious">Suspicious</option><option value="dangerous">Dangerous</option></select></div></div><p className="mt-3 text-xs text-[#718098]">Showing {filteredItems.length} of {items.length} scans</p></div>
                             <div className="divide-y divide-white/10">
-                                {filteredItems.length === 0 ? <p className="p-8 text-center text-sm text-[#9CA9C0]">No scans match these filters.</p> : <AnimatePresence initial={false} mode="popLayout">{filteredItems.map((item) => { const TypeIcon = typeIcons[item.input_type as keyof typeof typeIcons] ?? Sparkles; const VerdictIcon = getVerdictIcon(item.verdict); const expanded = expandedId === item.id; return <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} key={item.id}><motion.button whileTap={{ scale: 0.995 }} onClick={() => setExpandedId(expanded ? null : item.id)} className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-white/[0.03] sm:grid-cols-[minmax(0,1fr)_120px_28px] sm:items-center sm:px-5" aria-expanded={expanded}><span className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#22D3B8]/10 text-[#67E8C5]"><TypeIcon className="h-4 w-4" /></span><span className="min-w-0"><span className="block truncate text-sm font-semibold text-white">{item.input_value || item.domain || "Unknown value"}</span><span className="mt-1 block text-xs text-[#718098]">{typeLabels[item.input_type] ?? "Scan"} · {new Date(item.created_at).toLocaleString()}</span></span></span><span className="flex items-center gap-2 sm:justify-end"><VerdictIcon className={`h-4 w-4 ${getScoreTone(item.trust_score)}`} /><span><span className={`block font-display text-lg font-bold ${getScoreTone(item.trust_score)}`}>{item.trust_score}</span><span className="block text-[10px] uppercase tracking-[0.15em] text-[#718098]">{item.verdict}</span></span></span><ChevronDown className={`h-4 w-4 text-[#718098] transition-transform ${expanded ? "rotate-180" : ""}`} /></motion.button>{expanded && <div className="bg-[#08111F]/60 px-4 pb-5 sm:px-5"><div className="grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">{(item.factors || []).map((factor) => <div key={factor.name} className="surface-soft p-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-white">{factor.name}</span><span className="text-[10px] uppercase tracking-[0.12em] text-[#8B95AB]">{factor.status}</span></div><p className="mt-1 text-xs leading-5 text-[#8B95AB]">{factor.detail}</p></div>)}</div></div>}</motion.div>; })}</AnimatePresence>}
+                                {filteredItems.length === 0 ? <p className="p-8 text-center text-sm text-[#9CA9C0]">No scans match these filters.</p> : <AnimatePresence initial={false} mode="popLayout">{filteredItems.map((item) => { const TypeIcon = typeIcons[item.input_type as keyof typeof typeIcons] ?? Sparkles; const VerdictIcon = getVerdictIcon(item.verdict); const expanded = expandedId === item.id; return <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} key={item.id}><motion.button whileTap={{ scale: 0.995 }} onClick={() => setExpandedId(expanded ? null : item.id)} className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-white/[0.03] sm:grid-cols-[minmax(0,1fr)_120px_28px] sm:items-center sm:px-5" aria-expanded={expanded}><span className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#22D3B8]/10 text-[#67E8C5]"><TypeIcon className="h-4 w-4" /></span><span className="min-w-0"><span className="block truncate text-sm font-semibold text-white">{item.input_value || item.domain || "Unknown value"}</span><span className="mt-1 block text-xs text-[#718098]">{typeLabels[item.input_type] ?? "Scan"} Â· {new Date(item.created_at).toLocaleString()}</span></span></span><span className="flex items-center gap-2 sm:justify-end"><VerdictIcon className={`h-4 w-4 ${getScoreTone(item.trust_score)}`} /><span><span className={`block font-display text-lg font-bold ${getScoreTone(item.trust_score)}`}>{item.trust_score}</span><span className="block text-[10px] uppercase tracking-[0.15em] text-[#718098]">{item.verdict}</span></span></span><ChevronDown className={`h-4 w-4 text-[#718098] transition-transform ${expanded ? "rotate-180" : ""}`} /></motion.button>{expanded && <div className="bg-[#08111F]/60 px-4 pb-5 sm:px-5"><div className="grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">{(item.factors || []).map((factor) => <div key={factor.name} className="surface-soft p-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-white">{factor.name}</span><span className="text-[10px] uppercase tracking-[0.12em] text-[#8B95AB]">{factor.status}</span></div><p className="mt-1 text-xs leading-5 text-[#8B95AB]">{factor.detail}</p></div>)}</div></div>}</motion.div>; })}</AnimatePresence>}
                             </div>
                         </section>
                     </>
