@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -19,9 +19,12 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const supabase = createClient();
+    const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
 
     useEffect(() => {
+        const supabase = createClient();
+        supabaseRef.current = supabase;
+
         supabase.auth.getUser().then(({ data }) => {
             setUser(data.user);
             setLoading(false);
@@ -35,6 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const signOut = async () => {
+        const supabase = supabaseRef.current;
+        if (!supabase) {
+            throw new Error("Supabase client is not initialized.");
+        }
+
         await supabase.auth.signOut();
         setUser(null);
     };

@@ -7,9 +7,9 @@ import type { Session } from "@supabase/supabase-js";
 export default function DebugPage() {
     const [session, setSession] = useState<Session | null>(null);
     const [error, setError] = useState<string>("");
-    const supabase = createClient();
 
     useEffect(() => {
+        const supabase = createClient();
         supabase.auth.getSession().then(({ data, error }) => {
             if (error) setError(error.message);
             setSession(data.session);

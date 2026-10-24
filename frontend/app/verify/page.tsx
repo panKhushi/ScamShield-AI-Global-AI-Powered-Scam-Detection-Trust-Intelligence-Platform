@@ -38,7 +38,7 @@ export default function VerifyPage() {
                     ? { company_name: companyName, website }
                     : { recruiter_email: recruiterEmail, claimed_company: claimedCompany };
 
-            const res = await fetch(`http://localhost:8000${endpoint}`, {
+            const res = await fetch(`/backend${endpoint}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),

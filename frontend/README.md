@@ -1,5 +1,30 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment variables
+
+Create `frontend/.env.local` for local development. Configure the same variables in
+Render's environment settings before building the service:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-or-anon-key
+BACKEND_URL=http://127.0.0.1:8000
+```
+
+For the deployed frontend, set `BACKEND_URL` to:
+
+```env
+BACKEND_URL=https://scamshield-ai-global-ai-powered-scam.onrender.com
+```
+
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are required
+at build time. Use the public publishable/anon key only; never expose a Supabase
+service-role key or JWT secret in frontend variables.
+
+The frontend sends API requests through `/backend`. `BACKEND_URL` is used by the
+Next.js rewrite in `next.config.ts`, so it must be configured before a production
+build.
+
 ## Getting Started
 
 First, run the development server:

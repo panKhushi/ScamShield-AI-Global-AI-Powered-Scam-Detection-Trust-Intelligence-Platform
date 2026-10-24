@@ -25,13 +25,13 @@ export default function ReportForm({ targetValue, targetType, onSuccess }: Props
     const [submitting, setSubmitting] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [error, setError] = useState("");
-    const supabase = createClient();
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setSubmitting(true);
         setError("");
 
+        const supabase = createClient();
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
 
