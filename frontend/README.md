@@ -25,6 +25,23 @@ The frontend sends API requests through `/backend`. `BACKEND_URL` is used by the
 Next.js rewrite in `next.config.ts`, so it must be configured before a production
 build.
 
+## Render deployment
+
+Deploy this project as a **Web Service**, not a Static Site. The authentication
+proxy in `proxy.ts` and the `/backend` rewrite in `next.config.ts` require the
+Next.js server runtime.
+
+Use these Render settings:
+
+```text
+Root Directory: frontend
+Build Command: npm install && npm run build
+Start Command: npm run start
+```
+
+Do not set a publish directory. `next build` creates `.next`, and `next start`
+serves that production build.
+
 ## Getting Started
 
 First, run the development server:
