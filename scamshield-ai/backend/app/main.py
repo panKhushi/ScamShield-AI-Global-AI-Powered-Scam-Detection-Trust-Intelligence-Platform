@@ -31,12 +31,20 @@ def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_schema_compatibility()
 
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+# Add the Render frontend URL if configured
+_render_frontend = os.getenv("FRONTEND_URL")
+if _render_frontend:
+    ALLOWED_ORIGINS.append(_render_frontend.rstrip("/"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

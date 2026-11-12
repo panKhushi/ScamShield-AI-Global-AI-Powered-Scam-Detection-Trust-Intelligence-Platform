@@ -1,0 +1,55 @@
+# render.yaml — Render Blueprint
+# Deploys both the FastAPI backend and the Next.js frontend
+
+services:
+  # ─── Backend (FastAPI + ML models) ───────────────────────────
+  - type: web
+    name: scamshield-backend
+    runtime: python
+    region: singapore  # closest to India
+    plan: free
+    rootDir: scamshield-ai/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: DATABASE_URL
+        sync: false  # set manually in Render dashboard
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: WHOIS_API_KEY
+        sync: false
+      - key: GOOGLE_SAFE_BROWSING_KEY
+        sync: false
+      - key: VIRUSTOTAL_API_KEY
+        sync: false
+      - key: SCAMSHIELD_ADMIN_EMAILS
+        sync: false
+      - key: SCAMSHIELD_ADMIN_USER_IDS
+        sync: false
+
+  # ─── Frontend (Next.js) ─────────────────────────────────────
+  - type: web
+    name: scamshield-frontend
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: BACKEND_URL
+        sync: false  # will point to the backend Render URL
+      - key: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+        sync: false
