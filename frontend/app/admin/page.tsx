@@ -31,7 +31,7 @@ export default function AdminPage() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) {
-      setError(response.status === 403 ? "Administrator access is required. Configure your email or user ID in backend/.env." : "Could not load reports.");
+      setError(response.status === 403 ? "Administrator access is required. Use the administrator sign-in or configure your email or user ID in backend/.env." : "Could not load reports.");
       setLoading(false);
       return;
     }
@@ -74,7 +74,14 @@ export default function AdminPage() {
               <span className="max-w-20 text-[10px] font-semibold uppercase leading-4 tracking-[0.14em] text-[#8B95AB]">Awaiting review</span>
             </div>
           </header>
-          {error && <p role="alert" className="mb-5 rounded-2xl border border-[#F87171]/20 bg-[#F87171]/10 px-4 py-3 text-sm leading-6 text-[#FCA5A5]">{error}</p>}
+          {error && (
+            <div role="alert" className="mb-5 rounded-2xl border border-[#F87171]/20 bg-[#F87171]/10 px-4 py-3 text-sm leading-6 text-[#FCA5A5]">
+              <p>{error}</p>
+              <a href="/admin/login" className="mt-2 inline-block font-semibold text-[#D9FFF5] underline underline-offset-4">
+                Open administrator sign-in
+              </a>
+            </div>
+          )}
           {loading ? (
             <div className="space-y-3" aria-label="Loading reports">
               {[1, 2].map((item) => <div key={item} className="surface h-40 animate-pulse bg-white/[0.03]" />)}
