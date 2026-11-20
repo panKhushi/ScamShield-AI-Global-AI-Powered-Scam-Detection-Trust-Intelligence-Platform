@@ -45,21 +45,49 @@ Base = declarative_base()
 
 def ensure_schema_compatibility() -> None:
     """Apply small, idempotent upgrades for databases created by older releases."""
-    columns = {
-        "review_status": Column(String, nullable=True, server_default="pending"),
-        "moderator_note": Column(Text, nullable=True),
-        "reviewed_by": Column(String, nullable=True),
-        "reviewed_at": Column(DateTime(timezone=True), nullable=True),
-    }
-    existing_columns = {column["name"] for column in inspect(engine).get_columns("reports")}
+    inspector = inspect(engine)
 
     with engine.begin() as connection:
-        for name, column in columns.items():
-            if name in existing_columns:
+        for table in Base.metadata.sorted_tables:
+            table_name = table.name
+            if table_name not in inspector.get_table_names():
                 continue
-            sql_type = column.type.compile(dialect=engine.dialect)
-            default = " DEFAULT 'pending'" if name == "review_status" else ""
-            connection.execute(text(f'ALTER TABLE reports ADD COLUMN "{name}" {sql_type}{default}'))
+
+            existing_columns = {
+                column["name"]
+                for column in inspector.get_columns(table_name)
+            }
+
+            for column in table.columns:
+                if column.name in existing_columns or column.primary_key:
+                    continue
+
+                sql_type = column.type.compile(dialect=engine.dialect)
+                nullable = "NULL" if column.nullable else "NOT NULL"
+                default = ""
+
+                if column.server_default is not None:
+                    default_arg = str(column.server_default.arg)
+                    if "now" in default_arg.lower():
+                        default = " DEFAULT CURRENT_TIMESTAMP"
+                    elif "'pending'" in default_arg:
+                        default = " DEFAULT 'pending'"
+
+                if engine.dialect.name == "sqlite":
+                    connection.execute(
+                        text(
+                            f'ALTER TABLE "{table_name}" '
+                            f'ADD COLUMN "{column.name}" {sql_type} {nullable}{default}'
+                        )
+                    )
+                else:
+                    connection.execute(
+                        text(
+                            f'ALTER TABLE "{table_name}" '
+                            f'ADD COLUMN IF NOT EXISTS "{column.name}" '
+                            f'{sql_type}{default}'
+                        )
+                    )
 
 
 def get_db():
