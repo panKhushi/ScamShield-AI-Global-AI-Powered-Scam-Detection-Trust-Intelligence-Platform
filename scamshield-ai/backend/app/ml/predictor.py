@@ -1,6 +1,9 @@
 import joblib
+import logging
 from pathlib import Path
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 MODEL_DIR = Path(__file__).parent / "saved_models"
 
@@ -30,7 +33,11 @@ def predict_scam_probability(computed: dict) -> float:
     """
     Returns probability (0-100) that the site is a scam/phishing site.
     """
-    model, _ = load_model()
-    X = build_feature_vector(computed)
-    proba = model.predict_proba(X)[0]  # [prob_legit, prob_phishing] since class 1 = phishing
-    return round(float(proba[1]) * 100, 1)
+    try:
+        model, _ = load_model()
+        X = build_feature_vector(computed)
+        proba = model.predict_proba(X)[0]  # [prob_legit, prob_phishing] since class 1 = phishing
+        return round(float(proba[1]) * 100, 1)
+    except Exception:
+        logger.exception("URL ML prediction failed; using the rule-based result")
+        return 50.0

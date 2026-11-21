@@ -1,10 +1,19 @@
 import whois
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from app.models import ScoreFactor
 
+WHOIS_TIMEOUT_SECONDS = 5
+
+
+def _lookup_whois(domain: str):
+    return whois.whois(domain)
+
 def get_domain_age_days(domain: str) -> int | None:
     try:
-        w = whois.whois(domain)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_lookup_whois, domain)
+            w = future.result(timeout=WHOIS_TIMEOUT_SECONDS)
         creation_date = w.creation_date
         if isinstance(creation_date, list):
             creation_date = creation_date[0]

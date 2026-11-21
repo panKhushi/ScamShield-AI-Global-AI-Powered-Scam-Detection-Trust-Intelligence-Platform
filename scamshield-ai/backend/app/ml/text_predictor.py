@@ -1,5 +1,8 @@
 import joblib
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 MODEL_DIR = Path(__file__).parent / "saved_models"
 
@@ -36,21 +39,33 @@ def _load_sms_model():
 
 
 def predict_job_scam_probability(text: str) -> float:
-    model, vectorizer = _load_job_model()
-    X = vectorizer.transform([text])
-    proba = model.predict_proba(X)[0]  # [prob_legit, prob_fraudulent]
-    return round(float(proba[1]) * 100, 1)
+    try:
+        model, vectorizer = _load_job_model()
+        X = vectorizer.transform([text])
+        proba = model.predict_proba(X)[0]
+        return round(float(proba[1]) * 100, 1)
+    except Exception:
+        logger.exception("Job ML prediction failed; using rule-based analysis")
+        return 50.0
 
 
 def predict_email_phishing_probability(text: str) -> float:
-    model, vectorizer = _load_email_model()
-    X = vectorizer.transform([text])
-    proba = model.predict_proba(X)[0]  # [prob_legit, prob_phishing]
-    return round(float(proba[1]) * 100, 1)
+    try:
+        model, vectorizer = _load_email_model()
+        X = vectorizer.transform([text])
+        proba = model.predict_proba(X)[0]
+        return round(float(proba[1]) * 100, 1)
+    except Exception:
+        logger.exception("Email ML prediction failed; using rule-based analysis")
+        return 50.0
 
 
 def predict_sms_scam_probability(text: str) -> float:
-    model, vectorizer = _load_sms_model()
-    X = vectorizer.transform([text])
-    proba = model.predict_proba(X)[0]  # [prob_ham, prob_spam]
-    return round(float(proba[1]) * 100, 1)
+    try:
+        model, vectorizer = _load_sms_model()
+        X = vectorizer.transform([text])
+        proba = model.predict_proba(X)[0]
+        return round(float(proba[1]) * 100, 1)
+    except Exception:
+        logger.exception("SMS ML prediction failed; using rule-based analysis")
+        return 50.0

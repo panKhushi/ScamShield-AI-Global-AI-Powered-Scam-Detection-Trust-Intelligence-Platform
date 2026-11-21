@@ -77,6 +77,15 @@ def persist_normalized_scan_safely(
         logger.exception("Normalized %s scan write failed; returning the completed scan result", input_type)
 
 
+def persist_flat_scan_safely(db: Session, record: ScanRecord) -> None:
+    try:
+        db.add(record)
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Flat scan write failed; returning the completed scan result")
+
+
 def get_historical_safely(db: Session, input_type: str, value: str) -> HistoricalIntelligence:
     try:
         return check_history(db, input_type, value)
@@ -152,8 +161,7 @@ async def analyze(body: AnalyzeRequest, db: Session = Depends(get_db), user: dic
         verdict=verdict,
         factors=[f.dict() for f in factors],
     )
-    db.add(record)
-    db.commit()
+    persist_flat_scan_safely(db, record)
     persist_historical_scan_safely(db, "url", body.value, verdict, final_score, user.get("sub"))
 
     persist_normalized_scan_safely(
@@ -202,8 +210,7 @@ async def analyze_job(body: AnalyzeRequest, db: Session = Depends(get_db), user:
         verdict=verdict,
         factors=[f.dict() for f in factors],
     )
-    db.add(record)
-    db.commit()
+    persist_flat_scan_safely(db, record)
     persist_historical_scan_safely(db, "job", body.value, verdict, score, user.get("sub"))
     persist_normalized_scan_safely(
         db=db,
@@ -251,8 +258,7 @@ async def analyze_email(body: AnalyzeRequest, db: Session = Depends(get_db), use
         verdict=verdict,
         factors=[f.dict() for f in factors],
     )
-    db.add(record)
-    db.commit()
+    persist_flat_scan_safely(db, record)
     persist_historical_scan_safely(db, "email", body.value, verdict, score, user.get("sub"))
     persist_normalized_scan_safely(
         db=db,
@@ -299,8 +305,7 @@ async def analyze_phone_number(body: AnalyzeRequest, db: Session = Depends(get_d
         verdict=verdict,
         factors=[factor.dict() for factor in factors],
     )
-    db.add(record)
-    db.commit()
+    persist_flat_scan_safely(db, record)
     persist_historical_scan_safely(db, "phone", body.value, verdict, score, user.get("sub"))
 
     return AnalyzeResponse(
@@ -335,8 +340,7 @@ async def analyze_sms(body: AnalyzeRequest, db: Session = Depends(get_db), user:
         verdict=verdict,
         factors=[f.dict() for f in factors],
     )
-    db.add(record)
-    db.commit()
+    persist_flat_scan_safely(db, record)
     persist_historical_scan_safely(db, "sms", body.value, verdict, score, user.get("sub"))
     persist_normalized_scan_safely(
         db=db,

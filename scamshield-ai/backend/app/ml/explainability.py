@@ -1,6 +1,9 @@
 import shap
+import logging
 import pandas as pd
 from app.ml.predictor import load_model, build_feature_vector
+
+logger = logging.getLogger(__name__)
 
 _explainer = None
 
@@ -19,10 +22,13 @@ def explain_prediction(computed_features: dict, top_n: int = 5) -> list[dict]:
     with their SHAP contribution value (positive = pushed toward "scam",
     negative = pushed toward "legitimate").
     """
-    explainer = _get_explainer()
-    X = build_feature_vector(computed_features)
-
-    shap_values = explainer.shap_values(X)
+    try:
+        explainer = _get_explainer()
+        X = build_feature_vector(computed_features)
+        shap_values = explainer.shap_values(X)
+    except Exception:
+        logger.exception("SHAP explanation failed; returning an empty explanation")
+        return []
 
     # Handle different SHAP output shapes across versions:
     # - list of 2 arrays (older versions): [class_0_values, class_1_values]

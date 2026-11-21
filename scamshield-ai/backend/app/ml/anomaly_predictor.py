@@ -1,6 +1,9 @@
 import joblib
+import logging
 from pathlib import Path
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 MODEL_DIR = Path(__file__).parent / "saved_models"
 
@@ -22,7 +25,11 @@ def detect_anomaly(trust_score: int, factors: list) -> dict:
     Returns a dict with is_anomaly (bool) and anomaly_score (float,
     lower = more anomalous, per sklearn's convention).
     """
-    model, columns = _load_anomaly_model()
+    try:
+        model, columns = _load_anomaly_model()
+    except Exception:
+        logger.exception("Anomaly model failed to load; skipping anomaly factor")
+        return {"is_anomaly": False, "anomaly_score": 0.0}
 
     factors_by_name = {f.name: f for f in factors}
 
@@ -42,8 +49,12 @@ def detect_anomaly(trust_score: int, factors: list) -> dict:
 
     X = pd.DataFrame([row], columns=columns)
 
-    prediction = model.predict(X)[0]   # 1 = normal, -1 = anomaly
-    score = model.decision_function(X)[0]   # lower = more anomalous
+    try:
+        prediction = model.predict(X)[0]
+        score = model.decision_function(X)[0]
+    except Exception:
+        logger.exception("Anomaly prediction failed; skipping anomaly factor")
+        return {"is_anomaly": False, "anomaly_score": 0.0}
 
     return {
         "is_anomaly": bool(prediction == -1),
