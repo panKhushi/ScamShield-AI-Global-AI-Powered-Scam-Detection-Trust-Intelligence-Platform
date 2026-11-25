@@ -53,6 +53,7 @@ scamshield-ai/backend/n
 
 # Large ML datasets
 scamshield-ai/backend/app/ml/data/*.csv
+!scamshield-ai/backend/app/ml/data/tranco_list.csv
 
 # Virtual environment
 scamshield-ai/backend/venv/
