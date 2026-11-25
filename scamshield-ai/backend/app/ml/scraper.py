@@ -3,6 +3,9 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import pandas as pd
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -125,17 +128,24 @@ def _load_tranco_ranks() -> dict:
     global _tranco_ranks
     if _tranco_ranks is None:
         path = Path(__file__).parent / "data" / "tranco_list.csv"
-        df = pd.read_csv(path, names=["rank", "domain"], header=None)
-        _tranco_ranks = dict(zip(df["domain"], df["rank"]))
+        if not path.is_file():
+            logger.warning("Tranco ranking data is missing at %s; traffic scoring will be neutral", path)
+            _tranco_ranks = {}
+        else:
+            df = pd.read_csv(path, names=["rank", "domain"], header=None)
+            _tranco_ranks = dict(zip(df["domain"], df["rank"]))
     return _tranco_ranks
 
 
 def get_website_traffic_score(domain: str) -> int:
     """
     Looks up domain rank in the Tranco top 1M list.
-    Returns: 1 (legitimate/high traffic), 0 (suspicious/low traffic), -1 (phishing/no traffic)
+    Returns: 1 (legitimate/high traffic), 0 (low traffic or rank data unavailable), -1 (not ranked)
     """
     ranks = _load_tranco_ranks()
+    if not ranks:
+        return 0
+
     clean_domain = domain.replace("www.", "").lower().strip()
 
     rank = ranks.get(clean_domain)

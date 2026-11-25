@@ -10,6 +10,8 @@ load_dotenv()
 
 logger = logging.getLogger("scamshield")
 logging.basicConfig(level=logging.INFO)
+# HTTPX INFO logs include request URLs, which expose the Safe Browsing key.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 DEBUG_ERRORS = os.getenv("SCAMSHIELD_DEBUG", "false").lower() in {"1", "true", "yes"}
 
 from app.database import Base, engine, ensure_schema_compatibility

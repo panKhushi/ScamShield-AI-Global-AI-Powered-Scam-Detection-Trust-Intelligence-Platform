@@ -31,7 +31,9 @@ export default function AdminPage() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) {
-      setError(response.status === 403 ? "Administrator access is required. Use the administrator sign-in or configure your email or user ID in backend/.env." : "Could not load reports.");
+      setError(response.status === 403
+        ? "Your account is not authorized as an administrator. Add its email to SCAMSHIELD_ADMIN_EMAILS or its user ID to SCAMSHIELD_ADMIN_USER_IDS in the backend service's Render Environment settings, then redeploy."
+        : "Could not load reports.");
       setLoading(false);
       return;
     }
