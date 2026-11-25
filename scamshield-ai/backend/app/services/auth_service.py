@@ -20,7 +20,11 @@ logger = logging.getLogger(__name__)
 def get_jwks():
     global _jwks_cache
     if not JWKS_URL:
-        raise RuntimeError("SUPABASE_URL is not configured")
+        logger.error("Supabase authentication is unavailable because SUPABASE_URL is not configured")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service is not configured on the backend (SUPABASE_URL)",
+        )
     if _jwks_cache is None:
         response = requests.get(JWKS_URL, timeout=5)
         response.raise_for_status()
